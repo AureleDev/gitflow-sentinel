@@ -10,7 +10,7 @@
   "author": "Aurele Gnonlonfoun (@AureleDev)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/AureleDev/gitflow-sentinel"
+    "url": "git+https://github.com/AureleDev/gitflow-sentinel.git"
   },
   "keywords": [
     "git",

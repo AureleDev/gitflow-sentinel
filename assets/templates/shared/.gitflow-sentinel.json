@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "stableBranch": "main",
+  "integrationBranch": "dev",
+  "protectedBranches": ["main", "dev"],
+  "legacyBranch": "master",
+  "shortBranchPrefixes": ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"],
+  "commitTypes": null,
+  "prRoutes": {
+    "dev": ["feat/*", "fix/*", "docs/*", "style/*", "refactor/*", "perf/*", "test/*", "build/*", "ci/*", "chore/*", "revert/*", "hotfix/*"],
+    "main": ["dev", "release/*", "hotfix/*"]
+  },
+  "conventionalCommits": "warn",
+  "secretsGuard": true,
+  "historyProtection": "warn",
+  "tagProtection": "warn",
+  "worktreesAllowed": true,
+  "worktreeRoot": "{{WORKTREE_ROOT}}",
+  "delegateScanners": true,
+  "policyDocPath": "CONTRIBUTING.md",
+  "overrideMarker": "GITFLOW_OVERRIDE=explicit"
+}

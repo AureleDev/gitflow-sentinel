@@ -1,0 +1,8 @@
+# managed-by: gitflow-sentinel
+# Force LF on the native hook scripts. They start with a `#!/bin/sh` shebang;
+# if a checkout rewrites them to CRLF (autocrlf, an aggressive editor), the
+# shebang becomes `#!/bin/sh\r` and the hook fails on Linux/macOS with a
+# "bad interpreter" error. Pinning eol=lf keeps the guardrails working on every
+# platform regardless of the repo's autocrlf setting.
+.gitflow-sentinel/githooks/* text eol=lf
+.gitflow-sentinel/**/*.mjs text eol=lf

@@ -1,0 +1,19 @@
+# managed-by: gitflow-sentinel; guardrails-version: {{GUARDRAILS_VERSION}}
+name: gitflow-policy
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  branch-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Validate PR branch routing
+        run: node .gitflow-sentinel/hooks/ci-check.mjs
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+          GITHUB_HEAD_REF: ${{ github.head_ref }}

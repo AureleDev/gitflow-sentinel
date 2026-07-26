@@ -1,0 +1,8 @@
+# gitflow-sentinel
+.gitflow-sentinel/logs/
+.gitflow-sentinel/tmp/
+*.pre-gitflow-sentinel-*.bak
+.env
+.env.*
+!.env.example
+!.env.sample

@@ -1,0 +1,96 @@
+{
+  "skill_name": "gitflow-sentinel",
+  "evals": [
+    {
+      "id": 1,
+      "name": "fresh-repo-protect-main",
+      "prompt": "I just started a new internal tool and ran git init in the project folder (there's a README committed on main, nothing else). Before the team starts, set it up properly: nobody should be able to commit straight to main, we want a dev branch for integration, and feature work should go through pull requests. The repo is at <REPO>. Set up the git branch protection / workflow for me.",
+      "expected_output": "A dev branch exists; the repo has the guardrail engine + hook wiring installed for the agent runtime; commits directly to main/dev are blocked by a hook; a short branch + PR-to-dev workflow is established and explained.",
+      "assertions": [
+        "A dev (integration) branch is created.",
+        "The runtime is installed under .gitflow-sentinel/ and at least one agent wiring (.codex/hooks.json or .claude/settings.json) references guard.mjs.",
+        "Native git hooks are armed (core.hooksPath set or husky injection) so a direct commit to main is actually blocked.",
+        "The agent explains the short-branch -> PR -> dev workflow.",
+        "No destructive action (force push, branch deletion, history rewrite) was taken without asking."
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "audit-git-setup",
+      "prompt": "Something feels off with our repo's git hygiene. We have main, dev, and an old master branch nobody cleaned up, and I'm pretty sure people have been committing directly to dev. Audit the git and branch setup at <REPO> and tell me concretely what is misconfigured and how to fix it. Don't change anything destructive without telling me first.",
+      "expected_output": "A clear read-only audit: flags the leftover master branch, flags direct commits on dev / protected-branch issues, reports a checklist, and proposes concrete fixes (normalize master, install guardrails) without making unapproved destructive changes.",
+      "assertions": [
+        "Runs the doctor (read-only) and reports a checklist of findings.",
+        "Flags the leftover master/legacy branch.",
+        "Proposes concrete fixes (normalize legacy branch, install guardrails) and asks before any destructive change.",
+        "Makes no unapproved mutation to the repo."
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "trunk-based-configurable",
+      "prompt": "Set up branch guardrails for our repo at <REPO>. Important: we do trunk-based development, there is no dev branch, everything is PR'd into main directly. I want direct pushes to main blocked, and I really want it to stop people from accidentally committing .env files or API keys. Make the policy match how we actually work.",
+      "expected_output": "Guardrails installed with a config tailored to trunk-based dev (main is both stable and integration, no dev branch required); direct pushes to main blocked; staged secrets/.env commits blocked. The policy file reflects the trunk-based model rather than a hardcoded main/dev model.",
+      "assertions": [
+        ".gitflow-sentinel.json sets integrationBranch to main and does not require a dev branch.",
+        "protectedBranches and prRoutes reflect a single-trunk model.",
+        "Direct push to main is blocked and staged .env/secret commits are blocked.",
+        "Project-facing docs (if created) do not tell the user to use a non-existent dev branch."
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "coexist-with-husky",
+      "prompt": "Our Node repo at <REPO> already uses husky with lint-staged and commitlint, and I do not want to break that. I'd like to ALSO enforce branch rules: no direct commits to main, block force-pushes to main, and block committing .env files. Add that without taking over our existing husky hooks.",
+      "expected_output": "Guardrails installed in a way that coexists with husky: it injects into the existing .husky/* hooks (or otherwise does not clobber core.hooksPath), lint-staged/commitlint still run, and branch/force-push/.env enforcement is added.",
+      "assertions": [
+        "Does NOT overwrite husky's core.hooksPath ownership; cooperates with husky (injection into .husky/* or an explicit non-clobber path).",
+        "lint-staged / commitlint remain intact and runnable.",
+        "Branch protection, force-push protection, and .env blocking are added.",
+        "The approach is explained, including how the two hook systems coexist."
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "non-node-python-repo",
+      "prompt": "Add git guardrails to my Python project at <REPO> (there's no package.json — it's pure Python). I want to stop direct pushes to main and stop anyone committing secrets. Also make sure it keeps working after someone clones the repo fresh.",
+      "expected_output": "Guardrails installed on a repo with no package.json; the agent notes the Node runtime requirement for the hooks, and explains how a fresh clone re-arms (running activate.mjs once, since there is no npm install to trigger prepare). Push-to-main and secret commits are blocked.",
+      "assertions": [
+        "Installs successfully despite no package.json.",
+        "Notes that the hooks need Node on PATH at runtime.",
+        "Explains the fresh-clone re-arm step for non-Node repos (node .gitflow-sentinel/activate.mjs), since prepare cannot auto-run.",
+        "Push-to-main and secret/.env commits are blocked."
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "server-side-protection",
+      "prompt": "Set up branch protection for <REPO>, and on top of the local hooks I want it enforced on GitHub itself so it still holds even if a teammate skips the local setup. Block direct pushes and force-pushes to main and require PRs.",
+      "expected_output": "Local guardrails installed AND server-side GitHub branch protection configured (or clearly offered/attempted) via the --github-protection path / github-protect script, requiring gh auth. Explains that the server layer is the boundary that holds regardless of local setup.",
+      "assertions": [
+        "Installs the local guardrails.",
+        "Uses or offers the server-side GitHub protection path (--github-protection / github-protect.mjs), noting it needs an authenticated gh.",
+        "Explains the difference between local hooks and server-side protection."
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "clean-uninstall",
+      "prompt": "I tried gitflow-sentinel on <REPO> to evaluate it but we're going a different direction. Remove it cleanly — I don't want leftover hooks or config silently blocking commits later.",
+      "expected_output": "Runs the uninstall (dry-run then apply), which restores the previous core.hooksPath, de-merges the agent wirings, and removes the runtime. Confirms commits are no longer blocked and notes that project docs are left for manual review.",
+      "assertions": [
+        "Uses scripts/uninstall.mjs (not ad-hoc deletion).",
+        "Restores/unsets core.hooksPath so commits are no longer blocked.",
+        "Removes the runtime and de-merges agent wirings.",
+        "Notes that AGENTS.md/CONTRIBUTING.md/CLAUDE.md prose is left for manual cleanup."
+      ],
+      "files": []
+    }
+  ]
+}

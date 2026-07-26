@@ -1,0 +1,50 @@
+{
+  "name": "gitflow-sentinel",
+  "version": "2.1.0",
+  "description": "Framework-agnostic Git/GitHub branch-policy guardrails for humans and AI coding agents: protected branches, PR routing, secret and bypass blocking, with native git hooks and optional server-side GitHub protection.",
+  "type": "module",
+  "bin": {
+    "gitflow-sentinel": "scripts/cli.mjs"
+  },
+  "license": "MIT",
+  "author": "Aurele Gnonlonfoun (@AureleDev)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AureleDev/gitflow-sentinel"
+  },
+  "keywords": [
+    "git",
+    "github",
+    "git-hooks",
+    "branch-protection",
+    "pre-commit",
+    "conventional-commits",
+    "secret-scanning",
+    "gitflow",
+    "trunk-based",
+    "codex",
+    "claude-code",
+    "ai-agents",
+    "husky-alternative"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "doctor": "node scripts/doctor.mjs",
+    "verify": "node scripts/verify.mjs",
+    "install:guardrails": "node scripts/orchestrate.mjs",
+    "validate:evals": "node scripts/validate-evals.mjs"
+  },
+  "files": [
+    "SKILL.md",
+    "scripts/",
+    "references/",
+    "assets/",
+    "agents/",
+    "evals/",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "dependencies": {}
+}

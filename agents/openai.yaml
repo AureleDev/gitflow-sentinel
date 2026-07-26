@@ -1,0 +1,4 @@
+interface:
+  display_name: "gitflow-sentinel"
+  short_description: "Install, audit, and enforce safe Git/GitHub branch discipline (Codex + Claude Code)"
+  default_prompt: "Use $gitflow-sentinel to audit, install, upgrade, and verify configurable Git/GitHub guardrails — protected branches, PR routing, secret and Conventional-commit checks, and Codex/Claude Code hooks — in this project."

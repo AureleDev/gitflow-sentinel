@@ -72,5 +72,11 @@ export function stagedDiff(cwd = ".") {
   // value>), which the scanner self-flags as a high-entropy secret assignment —
   // this otherwise makes the engine unable to commit its own files. Filename-based
   // detection (scanStagedFiles) still covers the whole repo, including this dir.
-  return git(["diff", "--cached", "--unified=0", "--", ".", ":(exclude).gitflow-sentinel"], cwd);
+  return git([
+    "diff", "--cached", "--unified=0", "--", ".",
+    ":(exclude).gitflow-sentinel/core/**",
+    ":(exclude).gitflow-sentinel/hooks/**",
+    ":(exclude).gitflow-sentinel/githooks/**",
+    ":(exclude).gitflow-sentinel/activate.mjs",
+  ], cwd);
 }

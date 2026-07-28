@@ -4,6 +4,49 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [3.0.0-alpha.1] — 2026-07-27
+
+### Added
+
+- Sentinel Core contracts, redacted project inspection and deterministic
+  desired-state planning.
+- Bounded recursive workspace detection for nested TypeScript, Python `uv`,
+  package managers and monorepos, excluding generated agent worktrees.
+- Local-only inspection by default with explicit `--remote`/`--offline`
+  provider modes and bounded provider command timeouts.
+- Immutable plan hashes, stale-plan preconditions, atomic local transactions,
+  exact-byte backups, resume and rollback.
+- Inter-process transaction locks, greenfield bootstrap journals, file metadata
+  restoration and secret-safe backup refusal.
+- Windows long-path detection and repository-local configuration, plus exact
+  preservation of pre-existing empty parent directories during rollback.
+- State-bound, explicitly approved quality checks whose output is never stored;
+  CI generation now requires current verification evidence.
+- Executable module lifecycle registry for planning, application, verification,
+  rollback and uninstall boundaries.
+- Public `inspect`, `init`, `plan`, `apply`, `verify`, `status`, `rollback`,
+  `resume` and `update` commands.
+- Foundation modules for Git, GitHub, agent guidance, documentation, quality,
+  CI, security, dependencies and release preparation.
+- Portable `configure-project` Agent Skill and Codex plugin packaging.
+- Greenfield, brownfield, idempotence, stale-state and rollback integration
+  coverage.
+
+### Changed
+
+- Git policy is now one module in a general project-foundation orchestrator.
+- GitHub protection uses a dedicated additive ruleset and verifies the result.
+- Invalid configuration fails closed and is never replaced automatically.
+- Local agent and Git hooks are documented accurately as defense in depth.
+
+### Security
+
+- Plans exclude prior file contents and secret values.
+- Paths, symbolic links, approvals and local/remote preconditions are checked
+  before mutation.
+- Unknown pull-request routes and global `gh --repo … pr merge` forms fail
+  safely.
+
 ## [2.1.0] — 2026-07-26
 
 Windows-compatibility and coexistence-with-the-past hardening pass, plus

@@ -72,15 +72,11 @@ and `HOOKSPATH_TAMPER` (it repoints `core.hooksPath` away from the guardrails).
 
 ## Threat model
 
-The agent guard (PreToolUse) is a **best-effort backstop**, not a hard security
-boundary. It closes the accidental and obvious bypasses — a path to the git
-binary (`/usr/bin/git`, `git.exe`), `sh -c "git push"`, `eval`, `$(…)`
-substitution, `ssh host "git …"`, global options that hide the subcommand — so a
-determined process could still get around a pre-tool hook. The **real boundary**
-is the **native git layer** (the `pre-commit`/`commit-msg`/`pre-push` hooks run
-no matter how git is invoked, by agent or human) plus, when enabled, **GitHub
-server-side branch protection** (`scripts/github-protect.mjs`), which holds even
-when no local hook is installed.
+The agent guard and native Git hooks are **best-effort local safeguards**, not
+hard security boundaries. They close accidental and obvious bypasses and give
+fast feedback, but a process with local control can disable or replace them.
+Required CI and GitHub rulesets are the shared enforcement layers. See
+[`threat-model.md`](threat-model.md) for the complete model.
 
 ## Validation scenarios
 

@@ -30,8 +30,10 @@ const config = loadConfig(path.resolve(workdir));
 // Loudly surface a broken config instead of silently applying defaults — a typo
 // in protectedBranches must not quietly disable protection (mirrors the native
 // git layer's own check in githooks/native.mjs).
-if (typeof config._source === "string" && config._source.startsWith("defaults (invalid")) {
-  console.error(`gitflow-sentinel: WARNING — ${config._source}. Using built-in defaults.`);
+if (config._valid === false) {
+  console.error("gitflow-sentinel BLOCK [CONFIG_INVALID]: .gitflow-sentinel.json is invalid.");
+  for (const error of config._errors || []) console.error(`  - ${error.field}: ${error.message}`);
+  process.exit(2);
 }
 
 const segments = cmds.flatMap((c) => analyze(c));

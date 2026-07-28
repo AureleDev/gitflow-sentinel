@@ -9,8 +9,8 @@
 // What this parser does is close the *accidental* and *obvious* bypasses (path
 // to the git binary, `sh -c "git push"`, `eval`, command substitution, ssh
 // remote commands, git global options that hide the subcommand) so the guard is
-// useful in practice. The real boundary is the native git layer (which runs no
-// matter how git is invoked) plus, when enabled, server-side branch protection.
+// useful in practice. Native Git hooks are also local and bypassable; required
+// CI and server-side rules provide the shared enforcement boundary.
 
 // Strip a leading path and a Windows executable extension so `/usr/bin/git`,
 // `git.exe`, and `./git` all resolve to the program name `git`. This closes the
@@ -162,6 +162,34 @@ function parseGitInvocation(rest) {
   return { subcommand: rest[i] || "", args: rest.slice(i + 1), configOverrides };
 }
 
+const GH_VALUE_OPTS = new Set(["--repo", "-R", "--hostname"]);
+
+function parseGhInvocation(rest) {
+  let i = 0;
+  while (i < rest.length) {
+    const token = rest[i];
+    if (GH_VALUE_OPTS.has(token)) {
+      i += 2;
+      continue;
+    }
+    if (token.startsWith("--repo=") || token.startsWith("--hostname=")) {
+      i += 1;
+      continue;
+    }
+    if (token.startsWith("-")) {
+      i += 1;
+      continue;
+    }
+    break;
+  }
+  return {
+    group: rest[i] || "",
+    subcommand: rest[i + 1] || "",
+    args: rest.slice(i + 2),
+    globalArgs: rest.slice(0, i),
+  };
+}
+
 export function analyzeSegment(raw) {
   const tokens = tokenize(raw);
   const eff = effectiveTokens(tokens);
@@ -171,8 +199,7 @@ export function analyzeSegment(raw) {
   if (program === "git") {
     seg.git = parseGitInvocation(eff.slice(1));
   } else if (program === "gh") {
-    const nonFlags = eff.slice(1).filter((t) => !t.startsWith("-"));
-    seg.gh = { group: nonFlags[0] || "", subcommand: nonFlags[1] || "", args: eff.slice(1) };
+    seg.gh = parseGhInvocation(eff.slice(1));
   }
   return seg;
 }
@@ -436,7 +463,7 @@ export function isPrMerge(seg) {
 // `gh pr merge` is blocked by a runtime; guard it the same way.
 export function isApiMerge(seg) {
   if (!seg.gh || seg.gh.group !== "api") return false;
-  return seg.gh.args.some((a) => /repos\/[^\s]+\/pulls\/\d+\/merge/.test(a));
+  return [seg.gh.subcommand, ...seg.gh.args].some((a) => /repos\/[^\s]+\/pulls\/\d+\/merge/.test(a));
 }
 
 // Other write-ish `gh api` calls that can rewrite protected state behind the

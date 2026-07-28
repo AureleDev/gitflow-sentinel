@@ -1,7 +1,7 @@
 {
   "name": "gitflow-sentinel",
-  "version": "2.1.0",
-  "description": "Framework-agnostic Git/GitHub branch-policy guardrails for humans and AI coding agents: protected branches, PR routing, secret and bypass blocking, with native git hooks and optional server-side GitHub protection.",
+  "version": "3.0.0-alpha.1",
+  "description": "Cross-agent project-foundation orchestrator with inspection, immutable plans, transactional apply/rollback, Git policy, CI, documentation, security, and GitHub adapters.",
   "type": "module",
   "bin": {
     "gitflow-sentinel": "scripts/cli.mjs"
@@ -32,9 +32,14 @@
   },
   "scripts": {
     "doctor": "node scripts/doctor.mjs",
-    "verify": "node scripts/verify.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "verify": "node scripts/verify.mjs && node --test tests/*.test.mjs",
+    "verify:foundations": "node scripts/foundation-verify.mjs --project-root .",
     "install:guardrails": "node scripts/orchestrate.mjs",
-    "validate:evals": "node scripts/validate-evals.mjs"
+    "validate:evals": "node scripts/validate-evals.mjs",
+    "validate:package": "node scripts/validate-package.mjs",
+    "validate:self-host": "node scripts/validate-self-host.mjs",
+    "validate:projects": "node scripts/validate-project-matrix.mjs"
   },
   "files": [
     "SKILL.md",
@@ -42,6 +47,8 @@
     "references/",
     "assets/",
     "agents/",
+    "skills/",
+    ".codex-plugin/",
     "evals/",
     "LICENSE",
     "CHANGELOG.md"

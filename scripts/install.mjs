@@ -4,7 +4,7 @@
 // Codex and/or Claude Code. Deterministic file work lives here; project-facing
 // docs (AGENTS/CONTRIBUTING/CLAUDE) are left for the agent to integrate so local
 // content is preserved. Never commits, pushes, merges, or deletes.
-import { existsSync, chmodSync, appendFileSync, mkdirSync } from "node:fs";
+import { existsSync, chmodSync, appendFileSync, mkdirSync, readdirSync, rmSync, rmdirSync } from "node:fs";
 import path from "node:path";
 import {
   SKILL_NAME, SKILL_ROOT, TEMPLATE_ROOT, RUNTIME_VERSION,
@@ -12,8 +12,9 @@ import {
   writeText, backupPath, isManaged, mergeHooks, gitReadiness, BOOTSTRAP_ALLOWED, git, detectHookManager,
   nextValue, resolveProjectRoot,
 } from "./lib.mjs";
-import { loadConfig } from "../assets/templates/runtime/.gitflow-sentinel/core/config.mjs";
+import { loadConfig, assertValidConfig } from "../assets/templates/runtime/.gitflow-sentinel/core/config.mjs";
 import { readFile, writeFile } from "node:fs/promises";
+import { hashFile } from "./core/contracts.mjs";
 
 const ADVISORY_DOCS = new Set(["AGENTS.md", "CLAUDE.md", "CONTRIBUTING.md", ".github/PULL_REQUEST_TEMPLATE.md"]);
 
@@ -122,7 +123,15 @@ async function planItem(root, ctx, src, info, bootstrapDocs) {
 
   if (info.kind === "wiring-json") {
     if (!existsSync(target)) return { action: "create", rel: info.rel, target, content: rendered };
-    const existing = readJsonSafe(target) || {};
+    const existing = readJsonSafe(target);
+    if (!existing) {
+      return {
+        action: "invalid-json",
+        rel: info.rel,
+        target,
+        detail: "existing JSON is invalid; repair it or move it aside explicitly",
+      };
+    }
     const merged = mergeHooks(existing, JSON.parse(rendered));
     return { action: "merge-json", rel: info.rel, target, content: `${JSON.stringify(merged, null, 2)}\n` };
   }
@@ -176,38 +185,58 @@ async function applyPlan(root, plan, meta = {}) {
   // we just made and surface a clear partial-install error instead of leaving a
   // silently half-installed repo.
   const undo = [];
+  const recorded = new Set();
+  const recordUndo = async (target) => {
+    if (recorded.has(target)) return;
+    recorded.add(target);
+    undo.push({ target, existed: existsSync(target), prior: existsSync(target) ? await readFile(target) : null });
+  };
   try {
     for (const item of plan) {
+      if (item.action === "invalid-json") throw new Error(`${item.rel}: ${item.detail}`);
       if (["unchanged", "keep-config", "agent-integrate", "suggest-create"].includes(item.action)) continue;
+      await recordUndo(item.target);
       if (item.action === "replace-with-backup") {
-        const prior = await readFile(item.target, "utf8");
+        const prior = await readFile(item.target);
         await writeText(item.backup, prior);
-        undo.push({ target: item.target, prior });
       }
       if (item.action === "append-gitignore") {
         const existing = await readFile(item.target, "utf8");
         if (existing.includes(".gitflow-sentinel/logs/")) { manifest.files[item.rel] = { action: "unchanged" }; continue; }
-        undo.push({ target: item.target, prior: existing });
         const sep = existing.endsWith("\n") ? "" : "\n";
         await writeText(item.target, `${existing}${sep}\n${item.content}\n`);
       } else if (item.action === "append-gitattributes") {
         const existing = await readFile(item.target, "utf8");
         if (existing.includes(".gitflow-sentinel/githooks/")) { manifest.files[item.rel] = { action: "unchanged" }; continue; }
-        undo.push({ target: item.target, prior: existing });
         const sep = existing.endsWith("\n") ? "" : "\n";
         await writeText(item.target, `${existing}${sep}\n${item.content}\n`);
       } else {
         await writeText(item.target, item.content);
       }
-      manifest.files[item.rel] = { action: item.action };
+      manifest.files[item.rel] = {
+        action: item.action,
+        ...(item.backup ? { backup: normalizeRel(path.relative(root, item.backup)) } : {}),
+        afterHash: hashFile(item.target),
+      };
     }
+    await writeText(path.join(root, ".gitflow-sentinel", "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
   } catch (error) {
     for (const u of undo.reverse()) {
-      try { await writeFile(u.target, u.prior, "utf8"); } catch { /* leave the .bak as the recovery path */ }
+      try {
+        if (u.existed) await writeFile(u.target, u.prior);
+        else {
+          rmSync(u.target, { force: true });
+          let directory = path.dirname(u.target);
+          while (directory.startsWith(`${path.resolve(root)}${path.sep}`) && directory !== path.resolve(root)) {
+            if (readdirSync(directory).length) break;
+            rmdirSync(directory);
+            directory = path.dirname(directory);
+          }
+        }
+      } catch { /* leave the .bak as the recovery path */ }
     }
     throw new Error(`Install aborted and rolled back modified files: ${error.message}`, { cause: error });
   }
-  await writeText(path.join(root, ".gitflow-sentinel", "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
 const HOOK_ARGS = { "pre-commit": "", "commit-msg": '"$1"', "pre-push": '"$@"' };
@@ -358,7 +387,7 @@ async function main() {
     return;
   }
 
-  const config = loadConfig(root);
+  const config = assertValidConfig(loadConfig(root));
   const projectName = args.projectName || path.basename(root);
   const ctx = {
     projectName,
@@ -389,6 +418,9 @@ async function main() {
   const readiness = gitReadiness(root, config);
   printReadiness(readiness, args.apply, args.allowUnsafeApply, args.bootstrap);
   const blocking = readiness.isRepo ? blockingProblems(readiness, args.bootstrap) : [];
+  if (args.apply && !readiness.isRepo) {
+    throw new Error("Install --apply requires an existing Git repository. Use `gitflow-sentinel init` for a greenfield project.");
+  }
   if (args.apply && blocking.length && !args.allowUnsafeApply) {
     throw new Error("Unsafe Git state for --apply. Fix the problems above or use --allow-unsafe-apply after explicit approval.");
   }
@@ -399,47 +431,57 @@ async function main() {
   const prevHp = git(root, ["config", "--local", "core.hooksPath"]);
   const previousHooksPath = isFailure(prevHp) ? "" : String(prevHp).trim();
 
-  if (args.apply) {
-    await applyPlan(root, plan, { previousHooksPath, hookManager: detectHookManager(root)?.name || null });
-    console.log("\nInstalled. Project docs marked 'agent-integrate' still need your editorial pass.");
-    if (args.bootstrap) {
-      const seedBranch = readiness.branch || config.stableBranch;
-      console.log("\nBootstrap seed — the engine is now in the working tree but not committed. To protect the base branch:");
-      console.log(`  git add -A`);
-      // The marker must be an env-var prefix on the real command, not text inside
-      // the commit message — the native pre-commit hook reads process.env, and a
-      // protected branch (which the seed commit necessarily is) is blocked by
-      // native.mjs regardless of what the message says.
-      console.log(`  ${config.overrideMarker} git commit -m "chore: bootstrap gitflow-sentinel guardrails" -m "" -m "seed guardrails onto ${seedBranch}"`);
-      if (config.integrationBranch !== config.stableBranch && !readiness.branches?.has(config.integrationBranch)) {
-        console.log(`  git switch -c ${config.integrationBranch}   # create the integration branch from the seeded base`);
+  let localInstalled = false;
+  try {
+    if (args.apply) {
+      await applyPlan(root, plan, { previousHooksPath, hookManager: detectHookManager(root)?.name || null });
+      localInstalled = true;
+      console.log("\nInstalled. Project docs marked 'agent-integrate' still need your editorial pass.");
+      if (args.bootstrap) {
+        const seedBranch = readiness.branch || config.stableBranch;
+        console.log("\nBootstrap seed — the engine is now in the working tree but not committed. To protect the base branch:");
+        console.log(`  git add -A`);
+        console.log(`  ${config.overrideMarker} git commit -m "chore: bootstrap gitflow-sentinel guardrails" -m "" -m "seed guardrails onto ${seedBranch}"`);
+        if (config.integrationBranch !== config.stableBranch && !readiness.branches?.has(config.integrationBranch)) {
+          console.log(`  git switch -c ${config.integrationBranch}   # create the integration branch from the seeded base`);
+        }
+        console.log("Every branch cut from here will inherit the guardrails.");
       }
-      console.log("Every branch cut from here will inherit the guardrails.");
-    }
-  } else {
-    console.log("\nNo files written. Re-run with --apply to install.");
-  }
-
-  if (args.gitHooks) await enableNativeHooks(root, args.apply, previousHooksPath);
-
-  if (args.githubProtection) {
-    console.log("\nServer-side GitHub branch protection:");
-    if (!args.apply) {
-      console.log("- would run github-protect (dry-run). On --apply it configures protection via gh.");
-      const out = run(process.execPath, [path.join(SKILL_ROOT, "scripts", "github-protect.mjs"), "--project-root", root], root);
-      console.log(isFailure(out) ? (out.stdout || out.message) : out);
     } else {
-      const out = run(process.execPath, [path.join(SKILL_ROOT, "scripts", "github-protect.mjs"), "--project-root", root, "--apply"], root);
-      console.log(isFailure(out) ? (out.stdout || out.message) : out);
+      console.log("\nNo files written. Re-run with --apply to install.");
     }
-  }
 
-  if (args.verify) {
-    if (!args.apply) throw new Error("--verify requires --apply.");
-    const out = run(process.execPath, [path.join(SKILL_ROOT, "scripts", "verify.mjs"), "--project-root", root], root);
-    console.log("\nVerification:");
-    console.log(isFailure(out) ? (out.stdout || out.message) : out);
-    if (isFailure(out)) throw new Error("Verification failed.");
+    if (args.gitHooks) await enableNativeHooks(root, args.apply, previousHooksPath);
+
+    if (args.githubProtection) {
+      console.log("\nServer-side GitHub branch protection:");
+      if (!args.apply) {
+        console.log("- would run github-protect (dry-run). On --apply it configures protection via gh.");
+        const out = run(process.execPath, [path.join(SKILL_ROOT, "scripts", "github-protect.mjs"), "--project-root", root], root);
+        console.log(isFailure(out) ? (out.stdout || out.message) : out);
+      } else {
+        const out = run(process.execPath, [path.join(SKILL_ROOT, "scripts", "github-protect.mjs"), "--project-root", root, "--apply"], root);
+        console.log(isFailure(out) ? (out.stdout || out.message) : out);
+        if (isFailure(out)) throw new Error("GitHub protection failed; server enforcement was not applied.");
+      }
+    }
+
+    if (args.verify) {
+      if (!args.apply) throw new Error("--verify requires --apply.");
+      const out = run(process.execPath, [path.join(SKILL_ROOT, "scripts", "verify.mjs"), "--project-root", root], root);
+      console.log("\nVerification:");
+      console.log(isFailure(out) ? (out.stdout || out.message) : out);
+      if (isFailure(out)) throw new Error("Verification failed.");
+    }
+  } catch (error) {
+    if (localInstalled) {
+      const undone = run(process.execPath, [path.join(SKILL_ROOT, "scripts", "uninstall.mjs"), "--project-root", root, "--apply"], root);
+      if (isFailure(undone)) {
+        throw new Error(`${error.message} Automatic local uninstall also failed: ${undone.message}`, { cause: error });
+      }
+      throw new Error(`${error.message} Local installation was rolled back.`, { cause: error });
+    }
+    throw error;
   }
 }
 

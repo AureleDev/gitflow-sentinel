@@ -2,8 +2,8 @@
 // managed-by: gitflow-sentinel
 // Native Git hook enforcement. Unlike the agent-runtime guard (which only fires
 // when Codex/Claude use a tool), these run on EVERY git operation — a human
-// typing `git commit`, a script, any tool. Same engine, second enforcement
-// surface, and the real boundary. Git hooks block with a non-zero exit code.
+// typing `git commit`, a script, any tool. Same engine, second local enforcement
+// surface. Git hooks block with a non-zero exit code but remain bypassable.
 //
 // Invoked as: node native.mjs <pre-commit|commit-msg|pre-push> [arg]
 import { readFileSync } from "node:fs";
@@ -26,8 +26,10 @@ if (!state.isRepo) process.exit(0);
 
 // Loudly surface a broken config instead of silently applying defaults — a typo
 // in protectedBranches must not quietly disable protection.
-if (typeof config._source === "string" && config._source.startsWith("defaults (invalid")) {
-  console.error(`gitflow-sentinel (native): WARNING — ${config._source}. Using built-in defaults.`);
+if (config._valid === false) {
+  console.error("gitflow-sentinel (native): invalid .gitflow-sentinel.json; refusing the Git operation.");
+  for (const error of config._errors || []) console.error(`  - ${error.field}: ${error.message}`);
+  process.exit(1);
 }
 
 const scanners = config.delegateScanners ? detectScanners(cwd) : {};

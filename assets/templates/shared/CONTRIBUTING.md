@@ -43,9 +43,9 @@ node .gitflow-sentinel/activate.mjs
 
 ## What the guardrails enforce
 
-Two layers share one engine. The **native git hooks** (`pre-commit`,
-`commit-msg`, `pre-push`) enforce on every git command you run — this is the real
-boundary. The **agent layer** hook in `.gitflow-sentinel/hooks/guard.mjs` blocks
+Two local layers share one engine. The **native git hooks** (`pre-commit`,
+`commit-msg`, `pre-push`) run on ordinary Git commands but remain locally
+bypassable. The **agent layer** hook in `.gitflow-sentinel/hooks/guard.mjs` blocks
 (exit code 2, with an explanation fed back to the agent) when a coding agent
 acts:
 

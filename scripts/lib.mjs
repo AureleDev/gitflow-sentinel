@@ -23,11 +23,23 @@ export function run(command, args, cwd, options = {}) {
       encoding: "utf8",
       stdio: options.input ? ["pipe", "pipe", "pipe"] : ["ignore", "pipe", "pipe"],
       input: options.input,
+      timeout: options.timeout,
     }).trim();
   } catch (error) {
-    const stdout = error.stdout ? String(error.stdout).trim() : "";
-    const stderr = error.stderr ? String(error.stderr).trim() : "";
-    return { error, stdout, stderr, message: stderr || stdout || error.message };
+    const redact = (value) => String(value || "")
+      .replace(/(https?:\/\/)[^/\s@]+@/gi, "$1<redacted>@")
+      .replace(/([?&](?:access_token|token|secret|password|api[_-]?key)=)[^&#\s]+/gi, "$1<redacted>")
+      .replace(/\b(?:AKIA[0-9A-Z]{16}|(?:gh[pousr]_|github_pat_|glpat-|sk-(?:proj-)?|xox[baprs]-|npm_)[A-Za-z0-9_-]{8,})\b/g, "<redacted-secret>")
+      .trim();
+    const stdout = redact(error.stdout);
+    const stderr = redact(error.stderr);
+    const safeError = {
+      code: error.code,
+      signal: error.signal,
+      killed: error.killed,
+      message: redact(error.message),
+    };
+    return { error: safeError, stdout, stderr, message: stderr || stdout || safeError.message };
   }
 }
 

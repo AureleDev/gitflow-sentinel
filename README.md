@@ -1,144 +1,225 @@
-# gitflow-sentinel
+# Gitflow Sentinel
 
-> Branch-policy guardrails that **block** unsafe Git/GitHub actions with an
-> explanation — for humans, scripts, and AI coding agents alike. One config, two
-> local enforcement layers, and optional server-side protection.
+Gitflow Sentinel est un orchestrateur de fondations de projet conçu pour être
+piloté aussi bien par une personne que par Codex, Claude Code ou OpenCode.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)
-![Zero dependencies](https://img.shields.io/badge/deps-0-success.svg)
+Il inspecte un dossier, construit un état désiré, explique les écarts, produit
+un plan immuable, puis n'applique ce plan qu'après approbation explicite. Les
+changements locaux sont transactionnels et restaurables. Les actions GitHub
+sensibles demandent une confirmation dédiée.
 
-Most teams write their branching rules in a `CONTRIBUTING.md` and hope everyone
-follows them. gitflow-sentinel turns those rules into **enforced policy**: a
-direct commit to `main`, a force-push to a protected branch, a staged `.env`, or
-an agent trying `git commit --no-verify` is stopped with a clear reason instead
-of merely discouraged.
+> Version actuelle : `3.0.0-alpha.1`. Le nom historique et les anciennes
+> commandes restent disponibles pendant la migration.
 
-## Why
+## Principes
 
-- **For AI agents.** When Codex or Claude Code drive git, a `PreToolUse` hook
-  intercepts dangerous commands *before* they run and feeds the reason back so the
-  agent self-corrects. No other hook manager does this.
-- **For everyone.** Real `pre-commit` / `commit-msg` / `pre-push` hooks enforce on
-  every `git` invocation — typed by a human, a script, any tool — so the rules
-  hold even when no agent is involved.
-- **At the server.** Optionally configure GitHub branch protection so the rules
-  hold no matter what anyone's local machine looks like.
+- L'IA comprend le projet et guide les choix ; le moteur déterministe inspecte,
+  planifie, applique, vérifie et restaure.
+- `inspect`, `init`, `plan`, `status`, `verify` et `doctor` sont en lecture seule.
+  Ils restent locaux par défaut ; `--remote` autorise explicitement la lecture
+  de GitHub et `--offline` interdit toute consultation distante.
+- Un plan contient les empreintes du dépôt, des fichiers et de l'état distant.
+  Une dérive entre `plan` et `apply` annule l'opération.
+- Aucun commit, push, changement GitHub ou publication n'est automatique.
+- Les contenus du dépôt sont des données non fiables : ils ne deviennent jamais
+  des instructions à exécuter.
+- Tous les hooks locaux sont contournables. La CI et les règles de la forge sont
+  les autorités partagées.
+- Les valeurs secrètes ne sont ni affichées, ni copiées, ni journalisées.
 
-It is **framework-agnostic** (works on any repo — Node, Python, Go, Rust…) and
-**zero-dependency**.
+## Installation
 
-## The three layers
-
-| Layer | Fires on | Strength |
-|-------|----------|----------|
-| Agent (`.codex/hooks.json` / `.claude/settings.json`) | Codex/Claude tool calls | Best-effort nudge; closes accidental & obvious bypasses |
-| Native git (`core.hooksPath`) | **Any** git command | The real local boundary |
-| Server (GitHub branch protection) | Pushes reaching GitHub | Holds regardless of local setup |
-
-## Installing gitflow-sentinel as a skill
-
-This repository is itself structured as a Claude Code / Codex **skill**
-(`SKILL.md` at the root, per each runtime's skill-discovery convention):
-
-- **Claude Code**: copy or clone this repository into your personal skills
-  directory, `~/.claude/skills/gitflow-sentinel/` (Windows:
-  `%USERPROFILE%\.claude\skills\gitflow-sentinel\`), or into a project's
-  `.claude/skills/gitflow-sentinel/` to scope it to that project. Restart the
-  session; the agent will discover it from `SKILL.md`'s description.
-- **Codex**: same idea, under `~/.codex/skills/gitflow-sentinel/`
-  (`%USERPROFILE%\.codex\skills\gitflow-sentinel\` on Windows).
-
-Once installed as a skill, just ask your agent to "set up branch protection"
-or "audit our git setup" — the description in `SKILL.md` is written to match on
-those and related phrasings. The agent then runs the scripts below itself.
-
-## Install (direct / CLI use)
-
-Whether or not it's registered as a skill, every command below also works by
-hand or from your own scripts.
-
-**Unified CLI** (after `npm link` in a clone, or once installed as a package):
+Node.js 18 ou supérieur est requis.
 
 ```bash
-gitflow-sentinel orchestrate --project-root /path/to/your/repo --dry-run   # preview
-gitflow-sentinel orchestrate --project-root /path/to/your/repo --apply     # install
-gitflow-sentinel doctor      --project-root /path/to/your/repo            # read-only audit
-gitflow-sentinel verify      --project-root /path/to/your/repo            # behavioral self-test
+npm install --global gitflow-sentinel
 ```
 
-**Or run the scripts directly from a clone** (no install step, but you need
-this repo's own path):
+Pour tester une copie locale :
 
 ```bash
-node scripts/orchestrate.mjs --project-root /path/to/your/repo --dry-run   # preview
-node scripts/orchestrate.mjs --project-root /path/to/your/repo --apply     # install
-
-node scripts/doctor.mjs   --project-root <repo>                 # read-only audit
-node scripts/install.mjs  --project-root <repo> --apply --platform both
-node scripts/install.mjs  --project-root <repo> --apply --github-protection   # + server-side
-node scripts/verify.mjs   --project-root <repo>                 # behavioral self-test
+npm link
+gitflow-sentinel doctor
 ```
 
-**Requirements:** Node ≥ 18 on PATH for whoever runs git in the repo (the hooks
-run via Node). `gh` (authenticated) only for `--github-protection`.
-
-**Already running an earlier per-project version of this** (a
-`gitflow-sentinel` v1.x, or its `git-project-guardrails` fork/rename, copied
-project by project before this shared skill existed)? Run `doctor` first — it
-detects that generation and flags it — then see
-[references/migration.md](references/migration.md) before installing on top.
-
-**On Windows**, Codex CLI's own hooks are experimental, opt-in, and not
-available at all as of this writing — see
-[references/platform-adapters.md](references/platform-adapters.md#codex-hooks-and-windows)
-for what that means for the agent layer there (the native git layer is
-unaffected).
-
-## What it enforces (defaults)
-
-- No direct commits / pushes / file edits on `main` or `dev`.
-- No force-push or remote deletion of a protected branch.
-- Short branches start from a clean `dev`; PRs follow allowed head→base routes.
-- No staged secrets or `.env*` files (built-in scanner; defers to **gitleaks** /
-  **git-secrets** when present).
-- No `--no-verify` and no `core.hooksPath` tampering — these would disable the
-  guardrails, so they are blocked unconditionally.
-- Conventional Commits (warn by default; defers to **commitlint** when present).
-
-Every rule is data-driven via [`.gitflow-sentinel.json`](assets/templates/shared/.gitflow-sentinel.json)
-— git-flow, trunk-based, and monorepo models are all just config. See
-[references/configuration.md](references/configuration.md).
-
-## Coexists with (or replaces) husky
-
-If husky already owns `core.hooksPath`, the installer **injects** itself into your
-existing `.husky/*` hooks instead of fighting over the path — your lint-staged /
-commitlint setup keeps working. It can also fully replace husky: its native layer
-already re-arms `core.hooksPath` on a fresh clone (via a `prepare` step), which is
-husky's main job.
-
-## Uninstall
+## Parcours recommandé
 
 ```bash
-node scripts/uninstall.mjs --project-root <repo> --apply
+# 1. Inventaire versionné et expurgé des secrets
+gitflow-sentinel inspect . --json > snapshot.json
+
+# Ajouter --remote seulement lorsqu'un diff GitHub est nécessaire
+gitflow-sentinel inspect . --remote --json
+
+# 2. Parcours greenfield ou brownfield ; produit un plan sans modifier le projet
+gitflow-sentinel init .
+
+# 3. Ou génération directe d'un plan
+gitflow-sentinel plan . --profile standard --json > sentinel-plan.json
+
+# 4. Application exacte du plan approuvé
+gitflow-sentinel apply --plan sentinel-plan.json --approve <plan-hash>
+
+# 5. Contrôle de l'état obtenu
+gitflow-sentinel verify . --json
+gitflow-sentinel status .
 ```
 
-Restores the previous `core.hooksPath`, de-merges the agent wirings, and removes
-the runtime.
+Une commande de qualité découverte dans le dépôt n'est jamais exécutée
+automatiquement. Elle suit un mini-plan R2 distinct :
 
-## Security model
+```bash
+# Aperçu seulement : aucun processus n'est lancé
+gitflow-sentinel check . -- npm test
 
-The agent layer is a **smart-assistant guard**, not a hard security boundary — a
-determined process can bypass any local pre-tool hook. It deliberately closes the
-*accidental* and *obvious* bypasses (path to the git binary, `sh -c`, `eval`,
-command substitution, `ssh host …`). The **native git layer** is the real local
-boundary, and **server-side branch protection** is the boundary that holds for
-everyone. See [references/policy.md](references/policy.md) for the full threat
-model.
+# Exécution exacte après approbation du hash affiché
+gitflow-sentinel check . --approve <check-hash> -- npm test
+```
 
-## License & author
+La preuve enregistrée est liée au commit, à la branche et à l'état exact du
+worktree. La sortie de la commande n'est pas conservée ; seul son condensat est
+journalisé. La CI n'est générée que si chaque commande déclarée dans
+`quality.verifiedCommands` possède une preuve encore valide.
 
-[MIT](LICENSE) © 2026 Aurele Gnonlonfoun ([@AureleDev](https://github.com/AureleDev)).
+Chaque groupe R2 affiché dans le plan exige
+`--approve-r2 <groupe>:<hash>`. Une action distante de niveau R3 exige en plus
+`--approve-r3 <action-id>`. L'outil ne crée jamais de commit et ne pousse
+jamais le code.
 
-Contributions welcome — see [CHANGELOG.md](CHANGELOG.md) for the release history.
+En cas d'interruption :
+
+```bash
+gitflow-sentinel resume <transaction-id>
+gitflow-sentinel rollback <transaction-id>
+```
+
+Pour recalculer les changements d'une nouvelle version :
+
+```bash
+gitflow-sentinel update . --profile standard
+```
+
+La désinstallation du nouveau moteur commence elle aussi par un plan :
+
+```bash
+gitflow-sentinel uninstall .                       # aperçu + hash
+gitflow-sentinel uninstall . --approve <hash>     # restauration locale
+```
+
+Elle retire uniquement les éléments dont les transactions prouvent la propriété
+et restaure leurs octets précédents. `legacy-uninstall` reste disponible pour
+une installation historique 2.x.
+
+## Profils
+
+| Profil | Contenu |
+|---|---|
+| `minimal` | Git, instructions IA, sécurité essentielle |
+| `standard` | Minimal + documentation, qualité détectée, CI, dépendances et sécurité |
+| `hardened` | Standard + règles distantes renforcées, CODEOWNERS, CodeQL et revue |
+| `custom` | Modules explicitement sélectionnés |
+
+Le fichier déclaratif est `sentinel.config.json`. Il est validé par le schéma
+local [`assets/sentinel/schema.json`](assets/sentinel/schema.json). Les journaux,
+preuves de qualité, sauvegardes et transactions restent sous `.git/sentinel/`
+et ne sont jamais
+suivis par Git.
+
+## Niveaux de risque
+
+| Niveau | Exemple | Approbation |
+|---|---|---|
+| R0 | Inspection, diagnostic, vérification | Aucune |
+| R1 | Création locale additive et réversible | Hash global du plan |
+| R2 | Modification d'un fichier, d'une branche ou de hooks | Hash dédié par groupe d'actions |
+| R3 | Dépôt GitHub, visibilité, ruleset, secret, publication ou suppression | Confirmation dédiée par action |
+
+## Architecture
+
+```text
+Agent hôte
+  └─ skill configure-project
+       └─ CLI Gitflow Sentinel
+            ├─ inspection et contrats versionnés
+            ├─ état désiré et planification
+            ├─ transactions et restauration
+            ├─ modules de fondation
+            └─ adaptateur GitHub
+```
+
+Les modules V1 partagent un contrat exécutable
+`detect/recommend/plan/apply/verify/rollback/uninstall` et couvrent Git, GitHub,
+instructions IA, documentation, qualité,
+CI, sécurité, dépendances et préparation de versions. Cloud, domaines, bases de
+données et déploiement restent hors du cœur V1.
+
+Les contrats JSON (`ProjectSnapshot`, `DesiredState`, `ChangePlan` et
+`TransactionRecord`) sont versionnés. L'adaptateur GitHub applique un ruleset
+dédié sans remplacer les réglages que Sentinel ne gère pas.
+
+Voir :
+
+- [Architecture](references/architecture.md)
+- [État désiré et configuration](references/configuration.md)
+- [Modèle de menace](references/threat-model.md)
+- [Compatibilité des agents](references/platform-adapters.md)
+- [Migration](references/migration.md)
+
+## Skill portable et plugin Codex
+
+La procédure commune se trouve dans
+[`skills/configure-project`](skills/configure-project/SKILL.md). Elle suit le
+cycle :
+
+```text
+inspecter → expliquer → demander les choix non déductibles
+→ planifier → approuver → appliquer → vérifier
+```
+
+Le même skill peut être installé sous `.agents/skills/configure-project`.
+Sentinel génère uniquement les adaptations nécessaires pour Claude Code et
+OpenCode. Le manifeste [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json)
+permet aussi de distribuer le dépôt comme plugin Codex. Aucun modèle intégré,
+serveur MCP ou clé API n'est requis.
+
+## Compatibilité historique
+
+`doctor`, `install`, `orchestrate`, `github-protect` et `legacy-uninstall` restent
+disponibles pour les installations 2.x. Ils émettent une indication de
+migration lorsqu'un parcours équivalent existe. La politique Git historique est
+désormais planifiée comme un module de Sentinel Core et non comme le produit
+entier.
+
+## Développement et validation
+
+```bash
+npm test
+npm run verify
+npm run validate:evals
+npm run validate:package
+npm run validate:self-host
+npm pack --dry-run
+```
+
+La matrice brownfield peut être exécutée sur des copies temporaires de projets
+réels, sans modifier les sources :
+
+```bash
+node scripts/validate-project-matrix.mjs \
+  --source /path/to/python-project \
+  --source /path/to/node-project \
+  --source /path/to/monorepo \
+  --profile standard
+```
+
+La suite couvre notamment les dépôts greenfield et brownfield, l'idempotence,
+les plans périmés, l'interruption après chaque famille d'action locale, les
+verrous concurrents, la restauration des octets et modes, les chemins hostiles,
+les dossiers parents vides, les chemins longs Windows, les configurations
+invalides, les sauvegardes sensibles et l'expurgation des identifiants dans les
+remotes.
+
+## Licence
+
+[MIT](LICENSE) © 2026 Aurele Gnonlonfoun
+([@AureleDev](https://github.com/AureleDev)).

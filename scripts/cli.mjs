@@ -15,10 +15,22 @@ import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 const COMMANDS = {
-  doctor: "doctor.mjs",
+  inspect: "inspect.mjs",
+  init: "init-project.mjs",
+  plan: "plan.mjs",
+  apply: "apply.mjs",
+  status: "status.mjs",
+  rollback: "rollback.mjs",
+  resume: "resume.mjs",
+  update: "update.mjs",
+  doctor: "core-doctor.mjs",
+  "legacy-doctor": "doctor.mjs",
   install: "install.mjs",
-  verify: "verify.mjs",
-  uninstall: "uninstall.mjs",
+  verify: "foundation-verify.mjs",
+  check: "quality-check.mjs",
+  "self-test": "verify.mjs",
+  uninstall: "core-uninstall.mjs",
+  "legacy-uninstall": "uninstall.mjs",
   orchestrate: "orchestrate.mjs",
   "github-protect": "github-protect.mjs",
 };
@@ -27,12 +39,24 @@ function usage() {
   console.log(`Usage: gitflow-sentinel <command> [options]
 
 Commands:
-  doctor           Read-only audit of Git state + installed guardrails.
-  install          Install the guardrails into a project.
-  verify           Run the behavioral test suite (+ installed-project doctor).
-  uninstall        Cleanly remove the guardrails.
-  orchestrate      Run doctor -> install -> verify in order (recommended default).
-  github-protect   Configure server-side GitHub branch protection.
+  inspect          Build a read-only, redacted project snapshot.
+  init             Plan greenfield or existing-project foundations.
+  plan             Produce an immutable, risk-classified change plan.
+  apply            Apply one approved plan transactionally.
+  status           Show drift and transaction history.
+  rollback         Restore a completed local transaction.
+  resume           Resume an interrupted transaction.
+  update           Plan changes against the current desired state.
+  verify           Verify local foundations and GitHub policy.
+  check            Preview and run one approved quality command, recording state-bound evidence.
+  self-test        Run Sentinel's internal behavioral test suite.
+  doctor           Diagnose Sentinel Core dependencies and compatibility.
+  legacy-doctor    Audit a historical 2.x guardrail installation.
+  install          Legacy 2.x guardrail installer.
+  uninstall        Restore all owned local changes from Sentinel transactions.
+  legacy-uninstall Remove a historical 2.x guardrail installation.
+  orchestrate      Legacy 2.x doctor -> install -> self-test workflow.
+  github-protect   Legacy direct ruleset command; prefer an approved R3 plan.
 
 Run 'gitflow-sentinel <command> --help' for command-specific options.`);
 }
@@ -48,6 +72,11 @@ if (!file) {
   console.error(`Unknown command: ${cmd}\n`);
   usage();
   process.exit(1);
+}
+
+const LEGACY_COMMANDS = new Set(["install", "orchestrate", "github-protect", "legacy-doctor", "legacy-uninstall"]);
+if (LEGACY_COMMANDS.has(cmd)) {
+  console.warn(`NOTICE: '${cmd}' is a compatibility command. Prefer inspect -> plan -> apply -> verify for new work.`);
 }
 
 const result = spawnSync(process.execPath, [path.join(HERE, file), ...rest], { stdio: "inherit" });

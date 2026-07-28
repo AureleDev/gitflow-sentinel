@@ -213,6 +213,10 @@ export function evaluate(ctx) {
         out.push(decision("block", "PR_TO_LEGACY", `PRs to ${config.legacyBranch} are blocked.`, [
           `Normalize the stable branch to ${stable}, then use ${integration} -> ${stable}.`,
         ]));
+      } else if (!Object.prototype.hasOwnProperty.call(config.prRoutes, pr.base)) {
+        out.push(decision("block", "PR_UNKNOWN_BASE", `PR base ${pr.base} has no declared route.`, [
+          "Declare the route in .gitflow-sentinel.json before opening this PR.",
+        ]));
       } else if (config.prRoutes[pr.base] && !headMatchesRoute(config.prRoutes[pr.base], head)) {
         out.push(decision("block", "PR_ROUTE", `PR to ${pr.base} cannot come from ${head}.`, [
           `Allowed heads for ${pr.base}: ${config.prRoutes[pr.base].join(", ")}.`,

@@ -59,3 +59,12 @@ export function groupDescription(plan, group) {
     : "";
   return `${group.module}: ${actions.length} modification(s)${suffix}`;
 }
+
+export function renderSetupCompletion(snapshot, plan) {
+  const modules = plan.desiredState?.modules?.enabled || [];
+  const remoteExpected = modules.includes("github") && plan.desiredState?.github?.manageRuleset;
+  if (remoteExpected && !snapshot.provider?.github?.checked) {
+    return "La configuration locale est conforme. L’état GitHub n’a pas été vérifié ; relancez avec --remote si ce contrôle est nécessaire.";
+  }
+  return "Le projet est conforme à cet état désiré.";
+}

@@ -2,7 +2,7 @@
 import { createInterface } from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { parseProjectArgs, createPlanFor } from "./core/command-helpers.mjs";
-import { renderSetupSummary } from "./core/human-output.mjs";
+import { renderSetupCompletion, renderSetupSummary } from "./core/human-output.mjs";
 import { collectSetupApprovals } from "./core/setup-flow.mjs";
 import { renderPlan } from "./core/planner.mjs";
 import { applyPlan } from "./core/transaction.mjs";
@@ -23,7 +23,7 @@ async function main() {
   console.log(renderSetupSummary(snapshot, plan));
   if (args.verbose) console.log(`\n${renderPlan(plan)}`);
   if (!plan.actions.length) {
-    console.log("\nLe projet est déjà conforme à cet état désiré.");
+    console.log(`\n${renderSetupCompletion(snapshot, plan)}`);
     return;
   }
   if (args.planOnly || !input.isTTY || !output.isTTY) {

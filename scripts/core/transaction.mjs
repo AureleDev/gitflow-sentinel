@@ -23,6 +23,7 @@ import { serializeMergedJson } from "./json-merge.mjs";
 import { inspectGitHubProvider, rulesetMatches } from "./providers/github.mjs";
 import { assertBackupSafe } from "./security.mjs";
 import { getModule } from "./modules/registry.mjs";
+import { mergeManagedBlock } from "./managed-block.mjs";
 
 function gitDir(root) {
   const value = run("git", ["-C", root, "rev-parse", "--absolute-git-dir"], root);
@@ -172,16 +173,6 @@ function assertProjectPrecondition(plan, planFile) {
   }
 }
 
-function mergeManagedBlock(existing, block, label) {
-  const start = `<!-- gitflow-sentinel:start ${label} -->`;
-  const end = `<!-- gitflow-sentinel:end ${label} -->`;
-  const next = `${start}\n${block.trim()}\n${end}`;
-  const escaped = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`${escaped(start)}[\\s\\S]*?${escaped(end)}`);
-  if (pattern.test(existing)) return existing.replace(pattern, next);
-  return `${existing.trimEnd()}${existing.trim() ? "\n\n" : ""}${next}\n`;
-}
-
 function removeEmptyParents(root, file) {
   let current = path.dirname(file);
   const boundary = path.resolve(root);
@@ -239,7 +230,9 @@ function backupFile(transaction, journalFile, action, target) {
 }
 
 function nextFileContent(existing, action) {
-  if (action.type === "merge-managed-block") return mergeManagedBlock(existing, action.content, action.label);
+  if (action.type === "merge-managed-block") {
+    return mergeManagedBlock(existing, action.content, action.label, action.target);
+  }
   if (action.type === "merge-json") {
     let parsed;
     try {

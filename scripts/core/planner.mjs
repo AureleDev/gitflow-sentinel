@@ -14,6 +14,7 @@ import { rulesetMatches } from "./providers/github.mjs";
 import { serializeMergedJson } from "./json-merge.mjs";
 import { enabledModules, MODULE_ORDER } from "./modules/registry.mjs";
 import { validQualityEvidence } from "./quality-evidence.mjs";
+import { mergeManagedBlock } from "./managed-block.mjs";
 
 function content(file) {
   return readFileSync(file, "utf8");
@@ -21,16 +22,6 @@ function content(file) {
 
 function actionId(index, module, type) {
   return `${String(index + 1).padStart(3, "0")}-${module}-${type}`;
-}
-
-function mergePreview(existing, block, label) {
-  const start = `<!-- gitflow-sentinel:start ${label} -->`;
-  const end = `<!-- gitflow-sentinel:end ${label} -->`;
-  const next = `${start}\n${block.trim()}\n${end}`;
-  const escaped = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`${escaped(start)}[\\s\\S]*?${escaped(end)}`);
-  if (pattern.test(existing)) return existing.replace(pattern, next);
-  return `${existing.trimEnd()}${existing.trim() ? "\n\n" : ""}${next}\n`;
 }
 
 function fileAction(root, actions, module, relativePath, nextContent, {
@@ -42,7 +33,9 @@ function fileAction(root, actions, module, relativePath, nextContent, {
   const target = path.join(root, relativePath);
   if (existsSync(target)) {
     const existing = readFileSync(target, "utf8");
-    const next = type === "merge-managed-block" ? mergePreview(existing, nextContent, label) : nextContent;
+    const next = type === "merge-managed-block"
+      ? mergeManagedBlock(existing, nextContent, label, relativePath)
+      : nextContent;
     if (existing === next) return;
   }
   actions.push({

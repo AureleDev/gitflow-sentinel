@@ -25,6 +25,12 @@ commands, constraints and completion criteria without copying the full skill.
 Codex uses the portable skill and the bundled plugin manifest. Repository rules
 and hooks are merged structurally when required. Existing entries are preserved.
 
+On Windows, a host-level Codex sandbox helper can fail before Sentinel starts.
+Treat that as an incomplete agent run. Never disable the sandbox merely to
+continue against a real or untrusted project; reproduce the problem only in a
+disposable isolated fixture. See
+[`live-agent-validation.md`](live-agent-validation.md) for the validated case.
+
 ## Claude Code
 
 Sentinel can mirror the same skill to:

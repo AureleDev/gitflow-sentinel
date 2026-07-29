@@ -44,6 +44,7 @@ try {
     "scripts/ai.mjs",
     "scripts/core/ai-install.mjs",
     "scripts/core/human-output.mjs",
+    "scripts/core/managed-block.mjs",
     "scripts/core/setup-flow.mjs",
     "scripts/core/transaction.mjs",
     "scripts/core/technology.mjs",
@@ -51,6 +52,7 @@ try {
     "scripts/core/modules/registry.mjs",
     "scripts/quality-check.mjs",
     "assets/sentinel/schema.json",
+    "references/live-agent-validation.md",
     "skills/configure-project/SKILL.md",
     ".codex-plugin/plugin.json",
   ]) {

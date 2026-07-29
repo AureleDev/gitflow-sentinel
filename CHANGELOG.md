@@ -49,6 +49,13 @@ All notable changes to this project are documented here. The format is based on
 - Invalid configuration fails closed and is never replaced automatically.
 - Local agent and Git hooks are documented accurately as defense in depth.
 
+### Fixed
+
+- Managed blocks in `.gitignore` and `.gitattributes` use valid `#` comments
+  and migrate prior HTML markers without creating duplicates.
+- Guided setup distinguishes locally compliant foundations from GitHub state
+  that was not queried.
+
 ### Security
 
 - Plans exclude prior file contents and secret values.

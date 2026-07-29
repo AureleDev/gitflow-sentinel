@@ -58,8 +58,9 @@ gitflow-sentinel setup
 
 Cette commande inspecte le projet, affiche un résumé compréhensible, demande les
 autorisations nécessaires, applique les changements locaux dans une transaction
-restaurable, puis vérifie le résultat. Elle ne crée ni commit ni push. Une action
-GitHub conserve toujours sa confirmation séparée.
+restaurable, puis vérifie le résultat local. Sans `--remote`, l’état GitHub reste
+explicitement non vérifié. Elle ne crée ni commit ni push. Une action GitHub
+conserve toujours sa confirmation séparée.
 
 Pour seulement voir ce que Sentinel propose :
 
@@ -187,6 +188,7 @@ Voir :
 - [État désiré et configuration](references/configuration.md)
 - [Modèle de menace](references/threat-model.md)
 - [Compatibilité des agents](references/platform-adapters.md)
+- [Validation réelle des agents](references/live-agent-validation.md)
 - [Migration](references/migration.md)
 
 ## Skill portable et plugin Codex

@@ -40,7 +40,8 @@ import {
 } from "../scripts/core/providers/github.mjs";
 import { planAiInstall, applyAiInstall } from "../scripts/core/ai-install.mjs";
 import { collectSetupApprovals } from "../scripts/core/setup-flow.mjs";
-import { renderSetupSummary } from "../scripts/core/human-output.mjs";
+import { renderSetupCompletion, renderSetupSummary } from "../scripts/core/human-output.mjs";
+import { mergeManagedBlock } from "../scripts/core/managed-block.mjs";
 import { analyze } from "../assets/templates/runtime/.gitflow-sentinel/core/parser.mjs";
 import { DEFAULTS, validateConfig } from "../assets/templates/runtime/.gitflow-sentinel/core/config.mjs";
 import { evaluate, partition } from "../assets/templates/runtime/.gitflow-sentinel/core/policy.mjs";
@@ -359,6 +360,41 @@ test("guided setup summary is concise and shows detected project facts", (t) => 
   assert.equal(output.includes(plan.hash), false);
 });
 
+test("managed blocks use file-appropriate comments and migrate legacy ignore markers", () => {
+  const block = ".env\n*.key\n";
+  const gitignore = mergeManagedBlock("node_modules/\n", block, "project-foundations", ".gitignore");
+  assert.match(gitignore, /# gitflow-sentinel:start project-foundations/);
+  assert.equal(gitignore.includes("<!-- gitflow-sentinel:start"), false);
+
+  const legacy = `node_modules/
+
+<!-- gitflow-sentinel:start project-foundations -->
+old-value
+<!-- gitflow-sentinel:end project-foundations -->
+`;
+  const migrated = mergeManagedBlock(legacy, block, "project-foundations", ".gitignore");
+  assert.match(migrated, /# gitflow-sentinel:start project-foundations/);
+  assert.equal(migrated.includes("<!-- gitflow-sentinel:start"), false);
+  assert.equal((migrated.match(/gitflow-sentinel:start/g) || []).length, 1);
+
+  const markdown = mergeManagedBlock("", "Managed text", "project-contract", "AGENTS.md");
+  assert.match(markdown, /<!-- gitflow-sentinel:start project-contract -->/);
+});
+
+test("setup completion distinguishes local compliance from unchecked GitHub state", () => {
+  const snapshot = { provider: { github: { checked: false } } };
+  const plan = {
+    desiredState: {
+      modules: { enabled: ["git", "github"] },
+      github: { manageRuleset: true },
+    },
+  };
+  assert.match(renderSetupCompletion(snapshot, plan), /configuration locale est conforme/i);
+  assert.match(renderSetupCompletion(snapshot, plan), /GitHub n’a pas été vérifié/i);
+  snapshot.provider.github.checked = true;
+  assert.match(renderSetupCompletion(snapshot, plan), /projet est conforme/i);
+});
+
 test("AI skill install is additive, idempotent, and refuses unmanaged conflicts", (t) => {
   const homeDir = tempProject("sentinel-ai-home-");
   const conflictHome = tempProject("sentinel-ai-conflict-");
@@ -465,7 +501,9 @@ test("plan apply is idempotent and rollback restores prior local state", (t) => 
   assert.throws(() => applyPlan(plan, { approval: plan.hash }), /needs --approve-r2/);
   const transaction = applyPlan(plan, approvals(plan));
   assert.equal(transaction.status, "completed");
-  assert.equal(readFileSync(path.join(root, ".gitignore"), "utf8").includes("gitflow-sentinel:start project-foundations"), true);
+  const managedIgnore = readFileSync(path.join(root, ".gitignore"), "utf8");
+  assert.equal(managedIgnore.includes("# gitflow-sentinel:start project-foundations"), true);
+  assert.equal(managedIgnore.includes("<!-- gitflow-sentinel:start"), false);
 
   const after = makePlan(root);
   assert.equal(after.plan.actions.filter((action) => action.risk !== "R3").length, 0);

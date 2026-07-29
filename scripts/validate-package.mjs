@@ -53,6 +53,13 @@ try {
     "scripts/quality-check.mjs",
     "assets/sentinel/schema.json",
     "references/live-agent-validation.md",
+    "references/visuals/index.html",
+    "references/visuals/architecture.svg",
+    "references/visuals/parcours-humain.svg",
+    "references/visuals/parcours-agent.svg",
+    "references/visuals/cycle-vie.svg",
+    "references/visuals/securite-transactions.svg",
+    "references/visuals/plateformes-wsl.svg",
     "skills/configure-project/SKILL.md",
     ".codex-plugin/plugin.json",
   ]) {

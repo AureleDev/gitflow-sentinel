@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Parcours humain de Gitflow Sentinel</title>
+  <desc id="desc">Le parcours comprend une installation unique, un aperçu sans changement, des approbations graduées, une transaction locale, la vérification puis éventuellement la restauration.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10z" fill="context-stroke"/>
+    </marker>
+    <style>
+      :root { color-scheme:light dark; --bg:#f7f8fc; --surface:#fff; --text:#182033; --muted:#66718a; --line:#aab4c8; --blue:#2867d7; --blue-soft:#e8f0ff; --green:#17825f; --green-soft:#e4f6ef; --amber:#a45c08; --amber-soft:#fff2d8; --red:#b33b4a; --red-soft:#ffe7eb; --violet:#7047c8; --violet-soft:#f0eaff; }
+      @media (prefers-color-scheme:dark){:root{--bg:#111522;--surface:#1a2030;--text:#f0f3fa;--muted:#a8b2c8;--line:#58647d;--blue:#76a9ff;--blue-soft:#172a4c;--green:#67d5aa;--green-soft:#173a31;--amber:#ffc36b;--amber-soft:#3f3019;--red:#ff93a1;--red-soft:#421f28;--violet:#b89aff;--violet-soft:#2b2147;}}
+      text{font-family:"Segoe UI",Inter,sans-serif;fill:var(--text)} .bg{fill:var(--bg)} .title{font-size:28px;font-weight:600}.subtitle{font-size:15px;fill:var(--muted)}.section{font-size:13px;font-weight:600;letter-spacing:1.2px;fill:var(--muted)}
+      .node{fill:var(--surface);stroke:var(--line);stroke-width:1.5;rx:15}.install{fill:var(--violet-soft);stroke:var(--violet)}.read{fill:var(--blue-soft);stroke:var(--blue)}.write{fill:var(--green-soft);stroke:var(--green)}.decision{fill:var(--amber-soft);stroke:var(--amber)}.rollback{fill:var(--red-soft);stroke:var(--red)}
+      .label{font-size:17px;font-weight:600}.body{font-size:13px}.small{font-size:12px;fill:var(--muted)}.cmd{font-family:Consolas,monospace;font-size:12px}.flow{fill:none;stroke:var(--line);stroke-width:2.2;marker-end:url(#arrow)}.dash{stroke-dasharray:7 6}.lane{stroke:var(--line);stroke-width:1;stroke-dasharray:3 5}
+      .risk{font-size:12px;font-weight:600}.r0{fill:var(--blue-soft);stroke:var(--blue)}.r1{fill:var(--green-soft);stroke:var(--green)}.r2{fill:var(--amber-soft);stroke:var(--amber)}.r3{fill:var(--red-soft);stroke:var(--red)}
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="52" y="57">Parcours humain — de l’installation au rollback</text>
+  <text class="subtitle" x="52" y="84">Le chemin court masque la complexité, pas les décisions importantes.</text>
+
+  <text class="section" x="52" y="130">UNE FOIS PAR ORDINATEUR</text>
+  <rect class="node install" x="52" y="151" width="250" height="108" rx="15"/>
+  <text class="label" x="76" y="185">1. Installer la commande</text>
+  <text class="cmd" x="76" y="216">npm install --global …</text>
+  <text class="small" x="76" y="240">Locale aujourd’hui · npm @next ensuite</text>
+  <rect class="node install" x="348" y="151" width="270" height="108" rx="15"/>
+  <text class="label" x="372" y="185">2. Installer le skill IA</text>
+  <text class="cmd" x="372" y="216">gitflow-sentinel ai install --all</text>
+  <text class="small" x="372" y="240">Codex · Claude Code · OpenCode</text>
+  <path class="flow" d="M302 205 L348 205"/>
+  <rect class="node" x="662" y="151" width="486" height="108" rx="15"/>
+  <text class="label" x="686" y="185">Résultat</text>
+  <text class="body" x="686" y="214">La commande et le même protocole sont disponibles dans tous les projets.</text>
+  <text class="small" x="686" y="239">Aucun modèle, serveur MCP ou clé API supplémentaire.</text>
+  <path class="flow" d="M618 205 L662 205"/>
+
+  <line class="lane" x1="52" y1="295" x2="1148" y2="295"/>
+  <text class="section" x="52" y="331">POUR CHAQUE PROJET</text>
+
+  <rect class="node read" x="52" y="355" width="170" height="124" rx="15"/>
+  <text class="label" x="76" y="389">1. Aperçu</text>
+  <text class="cmd" x="76" y="420">setup --plan-only</text>
+  <text class="body" x="76" y="448">0 écriture</text>
+  <text class="small" x="76" y="468">Python · Git · CI · agents…</text>
+
+  <rect class="node read" x="257" y="355" width="170" height="124" rx="15"/>
+  <text class="label" x="281" y="389">2. Explication</text>
+  <text class="body" x="281" y="420">Écarts et recommandations</text>
+  <text class="body" x="281" y="448">Ajouts et modifications</text>
+  <text class="small" x="281" y="468">GitHub reste localement ignoré</text>
+
+  <rect class="node decision" x="462" y="355" width="190" height="124" rx="15"/>
+  <text class="label" x="486" y="389">3. Approbations</text>
+  <text class="body" x="486" y="420">Plan exact</text>
+  <text class="body" x="486" y="448">Groupes R2 · actions R3</text>
+  <text class="small" x="486" y="468">Refus = aucune écriture</text>
+
+  <rect class="node write" x="687" y="355" width="170" height="124" rx="15"/>
+  <text class="label" x="711" y="389">4. Transaction</text>
+  <text class="body" x="711" y="420">Écritures atomiques</text>
+  <text class="body" x="711" y="448">Journal et sauvegardes</text>
+  <text class="small" x="711" y="468">Arrêt si le plan a dérivé</text>
+
+  <rect class="node write" x="892" y="355" width="170" height="124" rx="15"/>
+  <text class="label" x="916" y="389">5. Vérification</text>
+  <text class="body" x="916" y="420">Second plan = 0 local</text>
+  <text class="body" x="916" y="448">GitHub seulement --remote</text>
+  <text class="small" x="916" y="468">Statut explicite : pass / pending</text>
+
+  <path class="flow" d="M222 417 L257 417"/>
+  <path class="flow" d="M427 417 L462 417"/>
+  <path class="flow" d="M652 417 L687 417"/>
+  <path class="flow" d="M857 417 L892 417"/>
+
+  <rect class="node rollback" x="892" y="527" width="170" height="94" rx="15"/>
+  <text class="label" x="916" y="561">6. Restaurer</text>
+  <text class="cmd" x="916" y="590">rollback &lt;txn-id&gt;</text>
+  <text class="small" x="916" y="611">Octets et Git config précédents</text>
+  <path class="flow dash" d="M977 479 L977 527"/>
+
+  <rect class="node" x="52" y="535" width="742" height="112" rx="15"/>
+  <text class="section" x="76" y="565">NIVEAUX DE RISQUE</text>
+  <rect class="r0" x="76" y="585" width="150" height="36" rx="11"/><text class="risk" x="93" y="608">R0 · lecture seule</text>
+  <rect class="r1" x="242" y="585" width="162" height="36" rx="11"/><text class="risk" x="258" y="608">R1 · ajout local</text>
+  <rect class="r2" x="420" y="585" width="174" height="36" rx="11"/><text class="risk" x="437" y="608">R2 · modification</text>
+  <rect class="r3" x="610" y="585" width="158" height="36" rx="11"/><text class="risk" x="628" y="608">R3 · externe</text>
+
+  <text class="small" x="52" y="688">Chemin manuel court : gitflow-sentinel setup · Chemin automatisable : inspect → plan → apply → verify</text>
+</svg>

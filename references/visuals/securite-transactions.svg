@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Sécurité, risques et transactions dans Gitflow Sentinel</title>
+  <desc id="desc">Le schéma montre les quatre niveaux de risque, les contrôles d’un plan avant application et les états d’une transaction jusqu’à la vérification ou la restauration.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker>
+    <style>
+      :root{color-scheme:light dark;--bg:#f7f8fc;--surface:#fff;--text:#182033;--muted:#66718a;--line:#aab4c8;--blue:#2867d7;--blue-soft:#e8f0ff;--green:#17825f;--green-soft:#e4f6ef;--amber:#a45c08;--amber-soft:#fff2d8;--red:#b33b4a;--red-soft:#ffe7eb;--violet:#7047c8;--violet-soft:#f0eaff}
+      @media(prefers-color-scheme:dark){:root{--bg:#111522;--surface:#1a2030;--text:#f0f3fa;--muted:#a8b2c8;--line:#58647d;--blue:#76a9ff;--blue-soft:#172a4c;--green:#67d5aa;--green-soft:#173a31;--amber:#ffc36b;--amber-soft:#3f3019;--red:#ff93a1;--red-soft:#421f28;--violet:#b89aff;--violet-soft:#2b2147}}
+      text{font-family:"Segoe UI",Inter,sans-serif;fill:var(--text)}.bg{fill:var(--bg)}.title{font-size:28px;font-weight:600}.subtitle{font-size:15px;fill:var(--muted)}.section{font-size:13px;font-weight:600;letter-spacing:1.2px;fill:var(--muted)}.card{fill:var(--surface);stroke:var(--line);stroke-width:1.4;rx:15}.r0{fill:var(--blue-soft);stroke:var(--blue)}.r1{fill:var(--green-soft);stroke:var(--green)}.r2{fill:var(--amber-soft);stroke:var(--amber)}.r3{fill:var(--red-soft);stroke:var(--red)}.label{font-size:17px;font-weight:600}.body{font-size:13px}.small{font-size:12px;fill:var(--muted)}.flow{fill:none;stroke:var(--line);stroke-width:2;marker-end:url(#arrow)}.flow-green{stroke:var(--green)}.flow-red{stroke:var(--red);stroke-dasharray:7 6}.state{fill:var(--violet-soft);stroke:var(--violet);stroke-width:1.5;rx:13}.ok{fill:var(--green-soft);stroke:var(--green);stroke-width:1.5;rx:13}.fail{fill:var(--red-soft);stroke:var(--red);stroke-width:1.5;rx:13}.gate{fill:var(--amber-soft);stroke:var(--amber);stroke-width:1.5;rx:13}
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="760"/>
+  <text class="title" x="52" y="56">Sécurité — chaque écriture est une transaction conditionnelle</text>
+  <text class="subtitle" x="52" y="83">Le plan est une proposition immuable ; l’application vérifie encore l’état réel avant d’agir.</text>
+
+  <text class="section" x="52" y="128">RISQUE ET APPROBATION</text>
+  <rect class="card r0" x="52" y="151" width="252" height="132" rx="15"/>
+  <text class="label" x="76" y="184">R0 · Observer</text>
+  <text class="body" x="76" y="214">inspect · status · verify</text>
+  <text class="body" x="76" y="240">Aucune mutation</text>
+  <text class="small" x="76" y="264">Pas d’approbation</text>
+  <rect class="card r1" x="330" y="151" width="252" height="132" rx="15"/>
+  <text class="label" x="354" y="184">R1 · Ajouter</text>
+  <text class="body" x="354" y="214">Fichier local nouveau</text>
+  <text class="body" x="354" y="240">Réversible</text>
+  <text class="small" x="354" y="264">Approbation globale du plan</text>
+  <rect class="card r2" x="608" y="151" width="252" height="132" rx="15"/>
+  <text class="label" x="632" y="184">R2 · Modifier</text>
+  <text class="body" x="632" y="214">Fichier ou état Git existant</text>
+  <text class="body" x="632" y="240">Sauvegarde exacte</text>
+  <text class="small" x="632" y="264">Approbation par module</text>
+  <rect class="card r3" x="886" y="151" width="262" height="132" rx="15"/>
+  <text class="label" x="910" y="184">R3 · Externe</text>
+  <text class="body" x="910" y="214">GitHub · visibilité · publication</text>
+  <text class="body" x="910" y="240">Pas toujours réversible</text>
+  <text class="small" x="910" y="264">Confirmation par action</text>
+
+  <text class="section" x="52" y="334">PORTES AVANT L’ÉCRITURE</text>
+  <rect class="gate" x="52" y="357" width="188" height="76" rx="13"/>
+  <text class="label" x="75" y="388">Plan intact ?</text>
+  <text class="small" x="75" y="412">hash canonique</text>
+  <rect class="gate" x="278" y="357" width="188" height="76" rx="13"/>
+  <text class="label" x="301" y="388">Projet inchangé ?</text>
+  <text class="small" x="301" y="412">HEAD · branche · worktree</text>
+  <rect class="gate" x="504" y="357" width="188" height="76" rx="13"/>
+  <text class="label" x="527" y="388">Fichiers intacts ?</text>
+  <text class="small" x="527" y="412">empreintes · liens symboliques</text>
+  <rect class="gate" x="730" y="357" width="188" height="76" rx="13"/>
+  <text class="label" x="753" y="388">Approbations ?</text>
+  <text class="small" x="753" y="412">plan · R2 · R3</text>
+  <rect class="gate" x="956" y="357" width="192" height="76" rx="13"/>
+  <text class="label" x="979" y="388">Secrets sûrs ?</text>
+  <text class="small" x="979" y="412">aucun secret en sauvegarde</text>
+  <path class="flow" d="M240 395 L278 395"/><path class="flow" d="M466 395 L504 395"/><path class="flow" d="M692 395 L730 395"/><path class="flow" d="M918 395 L956 395"/>
+
+  <text class="section" x="52" y="490">CYCLE DE TRANSACTION</text>
+  <rect class="state" x="52" y="522" width="150" height="68" rx="13"/><text class="label" x="81" y="563">pending</text>
+  <rect class="state" x="244" y="522" width="150" height="68" rx="13"/><text class="label" x="273" y="563">applying</text>
+  <rect class="state" x="436" y="522" width="150" height="68" rx="13"/><text class="label" x="464" y="563">journal</text>
+  <rect class="ok" x="628" y="522" width="150" height="68" rx="13"/><text class="label" x="651" y="563">completed</text>
+  <rect class="ok" x="820" y="522" width="150" height="68" rx="13"/><text class="label" x="850" y="563">verified</text>
+  <path class="flow flow-green" d="M202 556 L244 556"/><path class="flow flow-green" d="M394 556 L436 556"/><path class="flow flow-green" d="M586 556 L628 556"/><path class="flow flow-green" d="M778 556 L820 556"/>
+
+  <rect class="fail" x="436" y="636" width="150" height="68" rx="13"/><text class="label" x="473" y="677">failed</text>
+  <rect class="fail" x="628" y="636" width="150" height="68" rx="13"/><text class="label" x="653" y="677">rolled-back</text>
+  <path class="flow flow-red" d="M511 590 L511 636"/><path class="flow flow-red" d="M586 670 L628 670"/>
+  <path class="flow flow-red" d="M895 590 C895 695 802 670 778 670"/>
+
+  <rect class="card" x="1008" y="508" width="140" height="194" rx="15"/>
+  <text class="label" x="1032" y="544">Stockage local</text>
+  <text class="body" x="1032" y="576">.git/sentinel/</text>
+  <text class="small" x="1032" y="602">transactions</text>
+  <text class="small" x="1032" y="626">backups</text>
+  <text class="small" x="1032" y="650">quality-evidence</text>
+  <text class="small" x="1032" y="674">transaction.lock</text>
+</svg>

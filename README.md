@@ -184,6 +184,7 @@ dédié sans remplacer les réglages que Sentinel ne gère pas.
 
 Voir :
 
+- [Atlas visuel : architecture, parcours, sécurité et plateformes](references/visuals/index.html)
 - [Architecture](references/architecture.md)
 - [État désiré et configuration](references/configuration.md)
 - [Modèle de menace](references/threat-model.md)

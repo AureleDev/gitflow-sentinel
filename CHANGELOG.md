@@ -8,6 +8,8 @@ All notable changes to this project are documented here. The format is based on
 
 ### Added
 
+- Visual atlas covering the product architecture, human and agent journeys,
+  project lifecycle, transaction safety, supported agents and the role of WSL.
 - Guided `gitflow-sentinel setup` flow for inspect, explain, approve, apply and
   immediate local verification in one command.
 - One-time `gitflow-sentinel ai install` skill distribution for Codex, Claude

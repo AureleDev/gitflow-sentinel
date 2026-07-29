@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">Architecture générale de Gitflow Sentinel</title>
+  <desc id="desc">L'utilisateur pilote un agent hôte qui charge le skill configure-project. Le skill appelle Sentinel Core, lequel inspecte, planifie, applique, vérifie et restaure le dépôt local et, après approbation dédiée, GitHub.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/>
+    </marker>
+    <style>
+      :root { color-scheme: light dark; --bg:#f7f8fc; --surface:#ffffff; --text:#182033; --muted:#647089; --line:#a9b2c5; --blue:#2867d7; --blue-soft:#e8f0ff; --violet:#7047c8; --violet-soft:#f0eaff; --green:#17825f; --green-soft:#e4f6ef; --amber:#a45c08; --amber-soft:#fff2d8; --red:#b33b4a; --red-soft:#ffe7eb; }
+      @media (prefers-color-scheme: dark) { :root { --bg:#111522; --surface:#1a2030; --text:#f0f3fa; --muted:#a8b2c8; --line:#58647d; --blue:#76a9ff; --blue-soft:#172a4c; --violet:#b89aff; --violet-soft:#2b2147; --green:#67d5aa; --green-soft:#173a31; --amber:#ffc36b; --amber-soft:#3f3019; --red:#ff93a1; --red-soft:#421f28; } }
+      text { font-family: "Segoe UI", Inter, sans-serif; fill:var(--text); }
+      .bg { fill:var(--bg); }
+      .title { font-size:28px; font-weight:600; }
+      .subtitle { font-size:15px; fill:var(--muted); }
+      .section { font-size:13px; font-weight:600; letter-spacing:1.2px; fill:var(--muted); }
+      .node { fill:var(--surface); stroke:var(--line); stroke-width:1.5; rx:16; }
+      .human { fill:var(--blue-soft); stroke:var(--blue); }
+      .skill { fill:var(--violet-soft); stroke:var(--violet); }
+      .core { fill:var(--green-soft); stroke:var(--green); }
+      .remote { fill:var(--amber-soft); stroke:var(--amber); }
+      .danger { fill:var(--red-soft); stroke:var(--red); }
+      .label { font-size:18px; font-weight:600; }
+      .body { font-size:14px; }
+      .small { font-size:12px; fill:var(--muted); }
+      .flow { fill:none; stroke:var(--line); stroke-width:2.2; marker-end:url(#arrow); }
+      .flow-blue { stroke:var(--blue); }
+      .flow-violet { stroke:var(--violet); }
+      .flow-green { stroke:var(--green); }
+      .flow-amber { stroke:var(--amber); stroke-dasharray:7 6; }
+      .divider { stroke:var(--line); stroke-width:1; stroke-dasharray:3 5; }
+      .pill { rx:11; fill:var(--surface); stroke:var(--line); }
+      .pill-text { font-size:12px; font-weight:600; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="56" y="58">Gitflow Sentinel — architecture générale</text>
+  <text class="subtitle" x="56" y="86">L’IA comprend et explique. Le moteur déterministe calcule, écrit, vérifie et restaure.</text>
+
+  <text class="section" x="70" y="140">INTENTION</text>
+  <text class="section" x="310" y="140">INTELLIGENCE PORTABLE</text>
+  <text class="section" x="566" y="140">AUTORITÉ DÉTERMINISTE</text>
+  <text class="section" x="930" y="140">CIBLES</text>
+
+  <rect class="node human" x="52" y="165" width="190" height="166" rx="16"/>
+  <text class="label" x="78" y="205">Utilisateur</text>
+  <text class="body" x="78" y="236">• exprime l’objectif</text>
+  <text class="body" x="78" y="264">• tranche les choix</text>
+  <text class="body" x="78" y="292">• approuve R1 / R2 / R3</text>
+  <rect class="pill" x="77" y="307" width="118" height="24"/>
+  <text class="pill-text" x="90" y="324">contrôle final</text>
+
+  <rect class="node human" x="52" y="364" width="190" height="132" rx="16"/>
+  <text class="label" x="78" y="405">Agent hôte</text>
+  <text class="small" x="78" y="431">Codex · Claude · OpenCode</text>
+  <text class="body" x="78" y="461">Observe, raisonne, explique</text>
+  <text class="small" x="78" y="482">Ne possède pas la logique d’écriture</text>
+
+  <rect class="node skill" x="294" y="220" width="220" height="216" rx="16"/>
+  <text class="label" x="322" y="260">configure-project</text>
+  <text class="small" x="322" y="284">Skill Agent Skills partagé</text>
+  <line class="divider" x1="322" y1="301" x2="486" y2="301"/>
+  <text class="body" x="322" y="330">1. inspecter</text>
+  <text class="body" x="322" y="356">2. expliquer</text>
+  <text class="body" x="322" y="382">3. demander les choix</text>
+  <text class="body" x="322" y="408">4. piloter le CLI</text>
+
+  <rect class="node core" x="552" y="165" width="304" height="382" rx="16"/>
+  <text class="label" x="580" y="205">Sentinel Core CLI</text>
+  <text class="small" x="580" y="229">Une même sortie quel que soit l’agent</text>
+
+  <rect class="pill" x="580" y="258" width="118" height="32"/>
+  <text class="pill-text" x="603" y="279">Inspecter</text>
+  <rect class="pill" x="712" y="258" width="116" height="32"/>
+  <text class="pill-text" x="737" y="279">Profiler</text>
+  <rect class="pill" x="580" y="307" width="118" height="32"/>
+  <text class="pill-text" x="608" y="328">Planifier</text>
+  <rect class="pill" x="712" y="307" width="116" height="32"/>
+  <text class="pill-text" x="742" y="328">Diff</text>
+  <rect class="pill" x="580" y="356" width="118" height="32"/>
+  <text class="pill-text" x="607" y="377">Appliquer</text>
+  <rect class="pill" x="712" y="356" width="116" height="32"/>
+  <text class="pill-text" x="736" y="377">Vérifier</text>
+  <rect class="pill" x="580" y="405" width="118" height="32"/>
+  <text class="pill-text" x="606" y="426">Reprendre</text>
+  <rect class="pill" x="712" y="405" width="116" height="32"/>
+  <text class="pill-text" x="737" y="426">Restaurer</text>
+
+  <line class="divider" x1="580" y1="462" x2="828" y2="462"/>
+  <text class="small" x="580" y="488">Modules : Git · agents · docs · qualité · CI</text>
+  <text class="small" x="580" y="510">sécurité · dépendances · versions · GitHub</text>
+
+  <rect class="node core" x="914" y="165" width="230" height="176" rx="16"/>
+  <text class="label" x="942" y="205">Dépôt local</text>
+  <text class="body" x="942" y="236">Fichiers et Git</text>
+  <text class="body" x="942" y="264">CI et documentation</text>
+  <text class="body" x="942" y="292">.git/sentinel/</text>
+  <text class="small" x="942" y="316">transactions · sauvegardes</text>
+
+  <rect class="node remote" x="914" y="377" width="230" height="170" rx="16"/>
+  <text class="label" x="942" y="417">GitHub</text>
+  <text class="body" x="942" y="448">Dépôt · visibilité</text>
+  <text class="body" x="942" y="476">Rulesets · sécurité</text>
+  <text class="body" x="942" y="504">Permissions</text>
+  <text class="small" x="942" y="529">Lecture avec --remote · écriture R3</text>
+
+  <path class="flow flow-blue" d="M242 246 C270 246 270 324 294 324"/>
+  <path class="flow flow-blue" d="M147 331 L147 364"/>
+  <path class="flow flow-violet" d="M242 430 C267 430 270 373 294 373"/>
+  <path class="flow flow-violet" d="M514 328 L552 328"/>
+  <path class="flow flow-green" d="M856 253 L914 253"/>
+  <path class="flow flow-amber" d="M856 459 L914 459"/>
+
+  <rect class="node" x="52" y="596" width="1092" height="76" rx="16"/>
+  <text class="section" x="77" y="624">CONTRATS VERSIONNÉS</text>
+  <rect class="pill" x="77" y="638" width="190" height="25"/>
+  <text class="pill-text" x="96" y="655">ProjectSnapshot</text>
+  <rect class="pill" x="287" y="638" width="190" height="25"/>
+  <text class="pill-text" x="321" y="655">DesiredState</text>
+  <rect class="pill" x="497" y="638" width="190" height="25"/>
+  <text class="pill-text" x="535" y="655">ChangePlan</text>
+  <rect class="pill" x="707" y="638" width="190" height="25"/>
+  <text class="pill-text" x="737" y="655">TransactionRecord</text>
+  <rect class="pill" x="917" y="638" width="190" height="25"/>
+  <text class="pill-text" x="949" y="655">ProviderAdapter</text>
+</svg>

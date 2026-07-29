@@ -1,4 +1,4 @@
 interface:
   display_name: "Gitflow Sentinel"
-  short_description: "Audit and migrate existing Sentinel guardrails"
-  default_prompt: "Use $gitflow-sentinel to audit this existing Sentinel installation and migrate it safely to the transactional configure-project workflow."
+  short_description: "Configure or migrate project foundations safely"
+  default_prompt: "Use $gitflow-sentinel to inspect this project, explain the recommended setup, and prepare a reversible configuration plan."

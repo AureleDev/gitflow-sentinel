@@ -182,6 +182,7 @@
           "items": {
             "enum": [
               "git",
+              "git-policy",
               "github",
               "agents",
               "docs",

@@ -10,7 +10,7 @@ export const CONFIG_FILE = "sentinel.config.json";
 export const PROFILE_MODULES = {
   minimal: ["git", "agents", "security"],
   standard: ["git", "github", "agents", "docs", "quality", "ci", "security", "dependencies", "release"],
-  hardened: ["git", "github", "agents", "docs", "quality", "ci", "security", "dependencies", "release"],
+  hardened: ["git", "git-policy", "github", "agents", "docs", "quality", "ci", "security", "dependencies", "release"],
   custom: [],
 };
 
@@ -153,6 +153,11 @@ export function desiredFromSnapshot(snapshot, {
   strategy = "",
   reviewers,
 } = {}) {
+  const detectedAgents = [
+    snapshot.agents?.codex ? "codex" : "",
+    snapshot.agents?.claude ? "claude" : "",
+    snapshot.agents?.opencode ? "opencode" : "",
+  ].filter(Boolean);
   const detectedStrategy = snapshot.git.isRepo && snapshot.git.branches.includes("dev") ? "git-flow" : "trunk";
   const selectedStrategy = strategy && strategy !== "detect" ? strategy : detectedStrategy;
   const stableBranch = snapshot.git.defaultBranch || "main";
@@ -172,7 +177,11 @@ export function desiredFromSnapshot(snapshot, {
       integrationBranch,
       protectedBranches: [...new Set([stableBranch, integrationBranch])],
     },
-    agents: agents.length ? { enabled: agents } : {},
+    agents: agents.length
+      ? { enabled: agents }
+      : detectedAgents.length
+        ? { enabled: detectedAgents }
+        : {},
     github: {
       createRepository: createGitHub,
       owner: githubOwner,

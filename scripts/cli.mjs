@@ -15,6 +15,8 @@ import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 const COMMANDS = {
+  setup: "setup.mjs",
+  ai: "ai.mjs",
   inspect: "inspect.mjs",
   init: "init-project.mjs",
   plan: "plan.mjs",
@@ -39,6 +41,8 @@ function usage() {
   console.log(`Usage: gitflow-sentinel <command> [options]
 
 Commands:
+  setup            Inspect, explain, approve, apply, and verify in one guided flow.
+  ai install       Install the configure-project skill for detected agents (or --all).
   inspect          Build a read-only, redacted project snapshot.
   init             Plan greenfield or existing-project foundations.
   plan             Produce an immutable, risk-classified change plan.

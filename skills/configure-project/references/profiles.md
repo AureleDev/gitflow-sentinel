@@ -14,10 +14,16 @@ separate decision.
 
 ## hardened
 
-Use for sensitive, public, regulated, or multi-contributor repositories. Add supported CodeQL analysis, stricter GitHub review rules, CODEOWNERS planning, provenance recommendations, and stronger verification. Confirm availability and plan restrictions before proposing remote controls.
+Use for sensitive, public, regulated, or multi-contributor repositories. Add
+the optional historical local Git-policy runtime, supported CodeQL analysis,
+stricter GitHub review rules, CODEOWNERS planning, provenance recommendations,
+and stronger verification. Confirm availability and plan restrictions before
+proposing remote controls.
 
 ## custom
 
 Use only when the user explicitly selects modules. Record enabled modules in `sentinel.config.json`; do not silently inherit the standard profile.
 
-The supported V1 modules are `git`, `github`, `agents`, `docs`, `quality`, `ci`, `security`, `dependencies`, and `release`.
+The supported V1 modules are `git`, `git-policy`, `github`, `agents`, `docs`,
+`quality`, `ci`, `security`, `dependencies`, and `release`. `git-policy` is
+optional and is not enabled by `standard`.

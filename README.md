@@ -27,43 +27,65 @@ sensibles demandent une confirmation dédiée.
   les autorités partagées.
 - Les valeurs secrètes ne sont ni affichées, ni copiées, ni journalisées.
 
-## Installation
+## Démarrage simple
 
 Node.js 18 ou supérieur est requis.
 
+La version alpha n'est pas encore publiée sur npm. Depuis cette copie locale,
+installez l'outil une seule fois :
+
 ```bash
-npm install --global gitflow-sentinel
+npm install --global .
+gitflow-sentinel ai install --all
 ```
 
-Pour tester une copie locale :
+Après la publication npm, la première commande deviendra simplement :
 
 ```bash
-npm link
-gitflow-sentinel doctor
+npm install --global gitflow-sentinel@next
 ```
 
-## Parcours recommandé
+`ai install` place le même skill `configure-project` dans les emplacements
+utilisateur reconnus par Codex, Claude Code et OpenCode. Il n'ajoute aucun
+modèle, aucune clé API et aucun serveur : l'IA déjà présente sur l'ordinateur
+appelle le moteur déterministe de Sentinel.
+
+Ensuite, dans n'importe quel nouveau projet ou dépôt existant :
 
 ```bash
-# 1. Inventaire versionné et expurgé des secrets
-gitflow-sentinel inspect . --json > snapshot.json
+gitflow-sentinel setup
+```
 
-# Ajouter --remote seulement lorsqu'un diff GitHub est nécessaire
-gitflow-sentinel inspect . --remote --json
+Cette commande inspecte le projet, affiche un résumé compréhensible, demande les
+autorisations nécessaires, applique les changements locaux dans une transaction
+restaurable, puis vérifie le résultat. Elle ne crée ni commit ni push. Une action
+GitHub conserve toujours sa confirmation séparée.
 
-# 2. Parcours greenfield ou brownfield ; produit un plan sans modifier le projet
-gitflow-sentinel init .
+Pour seulement voir ce que Sentinel propose :
 
-# 3. Ou génération directe d'un plan
-gitflow-sentinel plan . --profile standard --json > sentinel-plan.json
+```bash
+gitflow-sentinel setup --plan-only
+```
 
-# 4. Application exacte du plan approuvé
+Depuis Codex, Claude Code ou OpenCode, la demande peut être formulée normalement :
+
+> Configure complètement ce projet avec le profil standard en utilisant
+> Sentinel. Explique-moi les choix avant toute action externe.
+
+## Parcours avancé et automatisable
+
+Le parcours détaillé reste disponible pour les agents et la CI :
+
+```bash
+gitflow-sentinel inspect . --json
+gitflow-sentinel plan . --profile standard --output sentinel-plan.json
 gitflow-sentinel apply --plan sentinel-plan.json --approve <plan-hash>
-
-# 5. Contrôle de l'état obtenu
 gitflow-sentinel verify . --json
 gitflow-sentinel status .
 ```
+
+Ajoutez `--remote` seulement lorsqu'un état GitHub doit être lu. Sans cette
+option, l'inspection et la planification restent locales.
 
 Une commande de qualité découverte dans le dépôt n'est jamais exécutée
 automatiquement. Elle suit un mini-plan R2 distinct :
@@ -116,7 +138,7 @@ une installation historique 2.x.
 |---|---|
 | `minimal` | Git, instructions IA, sécurité essentielle |
 | `standard` | Minimal + documentation, qualité détectée, CI, dépendances et sécurité |
-| `hardened` | Standard + règles distantes renforcées, CODEOWNERS, CodeQL et revue |
+| `hardened` | Standard + politique Git locale historique, règles distantes renforcées, CODEOWNERS, CodeQL et revue |
 | `custom` | Modules explicitement sélectionnés |
 
 Le fichier déclaratif est `sentinel.config.json`. Il est validé par le schéma
@@ -150,8 +172,10 @@ Agent hôte
 Les modules V1 partagent un contrat exécutable
 `detect/recommend/plan/apply/verify/rollback/uninstall` et couvrent Git, GitHub,
 instructions IA, documentation, qualité,
-CI, sécurité, dépendances et préparation de versions. Cloud, domaines, bases de
-données et déploiement restent hors du cœur V1.
+CI, sécurité, dépendances, préparation de versions et, en option, la politique
+Git locale historique (`git-policy`). Cette dernière n'est plus imposée par le
+profil standard. Cloud, domaines, bases de données et déploiement restent hors
+du cœur V1.
 
 Les contrats JSON (`ProjectSnapshot`, `DesiredState`, `ChangePlan` et
 `TransactionRecord`) sont versionnés. L'adaptateur GitHub applique un ruleset
@@ -176,11 +200,13 @@ inspecter → expliquer → demander les choix non déductibles
 → planifier → approuver → appliquer → vérifier
 ```
 
-Le même skill peut être installé sous `.agents/skills/configure-project`.
-Sentinel génère uniquement les adaptations nécessaires pour Claude Code et
-OpenCode. Le manifeste [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json)
-permet aussi de distribuer le dépôt comme plugin Codex. Aucun modèle intégré,
-serveur MCP ou clé API n'est requis.
+`gitflow-sentinel ai install` détecte les agents déjà installés ;
+`gitflow-sentinel ai install --all` prépare les trois agents supportés. Le même
+skill est partagé via `.agents/skills/configure-project` pour Codex/OpenCode et
+miroité sous `.claude/skills/configure-project` pour Claude Code. Le manifeste
+[`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) prépare aussi une future
+distribution comme plugin Codex. Aucun modèle intégré, serveur MCP ou clé API
+n'est requis.
 
 ## Compatibilité historique
 

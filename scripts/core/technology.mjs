@@ -4,9 +4,11 @@ import path from "node:path";
 const DEFAULT_MAX_DEPTH = 6;
 const DEFAULT_MAX_DIRECTORIES = 2_000;
 const DEFAULT_MAX_MANIFESTS = 1_000;
+const DEFAULT_MAX_SOURCE_SIGNALS = 2_000;
 
 const IGNORED_DIRECTORIES = new Set([
   ".git",
+  ".gitflow-sentinel",
   ".hg",
   ".svn",
   ".agent",
@@ -19,6 +21,10 @@ const IGNORED_DIRECTORIES = new Set([
   ".next",
   ".nuxt",
   ".opencode",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".ruff_cache",
+  ".tox",
   ".kiro",
   ".roo",
   ".output",
@@ -34,6 +40,8 @@ const IGNORED_DIRECTORIES = new Set([
   "node_modules",
   "out",
   "target",
+  "__pycache__",
+  "_bmad",
   "vendor",
   "venv",
 ]);
@@ -128,14 +136,17 @@ export function inspectTechnology(root, {
   maxDepth = DEFAULT_MAX_DEPTH,
   maxDirectories = DEFAULT_MAX_DIRECTORIES,
   maxManifests = DEFAULT_MAX_MANIFESTS,
+  maxSourceSignals = DEFAULT_MAX_SOURCE_SIGNALS,
 } = {}) {
   const languages = new Set();
   const managers = new Set();
   const manifests = [];
   const packages = [];
+  const sourceSignals = { python: 0 };
   const queue = [{ directory: path.resolve(root), depth: 0 }];
   let directoriesVisited = 0;
   let truncated = false;
+  let sourceSignalsTruncated = false;
 
   while (queue.length) {
     const { directory, depth } = queue.shift();
@@ -162,7 +173,16 @@ export function inspectTechnology(root, {
         }
         continue;
       }
-      if (!entry.isFile() || !isManifest(entry.name)) continue;
+      if (!entry.isFile()) continue;
+      if (/\.py$/i.test(entry.name)) {
+        if (sourceSignals.python < maxSourceSignals) {
+          sourceSignals.python += 1;
+          languages.add("python");
+        } else {
+          sourceSignalsTruncated = true;
+        }
+      }
+      if (!isManifest(entry.name)) continue;
       manifests.push(classifyManifest(root, full, languages, managers, packages));
       if (manifests.length >= maxManifests) {
         truncated = true;
@@ -186,10 +206,12 @@ export function inspectTechnology(root, {
     monorepo: Boolean(rootPackage?.workspaces || workspaceMarkers || packages.length > 1),
     manifests: manifests.sort(),
     packages: packages.sort((a, b) => a.path.localeCompare(b.path)),
+    sourceSignals,
     scan: {
       maxDepth,
       directoriesVisited,
       truncated,
+      sourceSignalsTruncated,
     },
   };
 }

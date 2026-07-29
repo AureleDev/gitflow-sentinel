@@ -7,6 +7,22 @@ description: Inspect and safely configure the complete foundations of a new or e
 
 Use the host agent for diagnosis and explanation. Use the Sentinel CLI for every deterministic inspection, plan, write, verification, and rollback.
 
+## Fast path
+
+When a person is operating their own terminal, recommend:
+
+```bash
+gitflow-sentinel setup <path>
+```
+
+It provides the short guided experience and still preserves the same immutable
+plan, risk approvals, transaction, rollback and verification. Use
+`--plan-only` when the user wants an audit without mutation.
+
+When acting as the host agent, do not try to answer interactive prompts on the
+user's behalf. Use the machine-readable workflow below so every finding and
+approval stays visible in the conversation.
+
 ## Workflow
 
 1. Resolve the project root and inspect it:
@@ -31,7 +47,8 @@ Use the host agent for diagnosis and explanation. Use the Sentinel CLI for every
 
    - Use `standard` unless the user requested otherwise.
    - Use `minimal` for Git, agent guidance, and essential secret protection only.
-   - Use `hardened` when stronger review and code-scanning controls are required.
+   - Use `hardened` when stronger review, code-scanning controls, or the
+     historical local Git-policy runtime are required.
    - Read [profiles.md](references/profiles.md) before choosing `custom`.
 
 5. If quality commands are selected, preview each command with

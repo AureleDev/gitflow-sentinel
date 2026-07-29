@@ -8,6 +8,12 @@ All notable changes to this project are documented here. The format is based on
 
 ### Added
 
+- Guided `gitflow-sentinel setup` flow for inspect, explain, approve, apply and
+  immediate local verification in one command.
+- One-time `gitflow-sentinel ai install` skill distribution for Codex, Claude
+  Code and OpenCode, with idempotent updates and unmanaged-conflict refusal.
+- Python project detection from bounded source-file signals when no package
+  manifest exists.
 - Sentinel Core contracts, redacted project inspection and deterministic
   desired-state planning.
 - Bounded recursive workspace detection for nested TypeScript, Python `uv`,
@@ -34,6 +40,10 @@ All notable changes to this project are documented here. The format is based on
 
 ### Changed
 
+- The standard profile now keeps the historical local Git-policy runtime
+  optional; it remains available through `hardened` or a custom profile.
+- Existing agent directories are selected automatically when no explicit agent
+  list is supplied.
 - Git policy is now one module in a general project-foundation orchestrator.
 - GitHub protection uses a dedicated additive ruleset and verifies the result.
 - Invalid configuration fails closed and is never replaced automatically.

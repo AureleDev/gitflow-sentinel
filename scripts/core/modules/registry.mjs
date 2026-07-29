@@ -2,6 +2,7 @@ const REQUIRED_METHODS = ["detect", "recommend", "plan", "apply", "verify", "rol
 
 const DEFINITIONS = [
   { id: "git", actionTypes: ["write-file", "merge-managed-block", "merge-json", "git-init", "git-config"] },
+  { id: "git-policy", actionTypes: ["write-file", "merge-managed-block", "merge-json", "git-config"] },
   { id: "github", actionTypes: ["github-create", "github-ruleset"] },
   { id: "agents", actionTypes: ["write-file", "merge-managed-block", "merge-json"] },
   { id: "docs", actionTypes: ["write-file", "merge-managed-block"] },
@@ -16,7 +17,6 @@ function defineModule(definition, order) {
   const actionTypes = new Set(definition.actionTypes);
   const module = {
     id: definition.id,
-    order,
     order,
     actionTypes,
     detect(context) {

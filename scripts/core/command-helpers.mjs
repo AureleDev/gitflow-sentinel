@@ -5,7 +5,7 @@ import { inspectProject } from "./inspect-project.mjs";
 import { loadDesiredState } from "./config.mjs";
 import { buildPlan } from "./planner.mjs";
 
-export function parseProjectArgs(argv, { profile = true, output = true, json = true } = {}) {
+export function parseProjectArgs(argv, { profile = true, output = true, json = true, setup = false } = {}) {
   const args = {
     projectRoot: ".",
     profile: "standard",
@@ -21,6 +21,8 @@ export function parseProjectArgs(argv, { profile = true, output = true, json = t
     output: "",
     remote: false,
     offline: false,
+    planOnly: false,
+    verbose: false,
   };
   let positional = false;
   for (let i = 0; i < argv.length; i += 1) {
@@ -47,6 +49,8 @@ export function parseProjectArgs(argv, { profile = true, output = true, json = t
     else if (output && value === "--output") { args.output = nextValue(argv, i, value); i += 1; }
     else if (value === "--remote") args.remote = true;
     else if (value === "--offline") args.offline = true;
+    else if (setup && value === "--plan-only") args.planOnly = true;
+    else if (setup && value === "--verbose") args.verbose = true;
     else if (json && value === "--json") args.json = true;
     else if (value === "--help" || value === "-h") args.help = true;
     else if (!value.startsWith("-") && !positional) { args.projectRoot = value; positional = true; }

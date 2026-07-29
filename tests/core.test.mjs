@@ -38,6 +38,9 @@ import {
   normalizeRuleset,
   rulesetMatches,
 } from "../scripts/core/providers/github.mjs";
+import { planAiInstall, applyAiInstall } from "../scripts/core/ai-install.mjs";
+import { collectSetupApprovals } from "../scripts/core/setup-flow.mjs";
+import { renderSetupSummary } from "../scripts/core/human-output.mjs";
 import { analyze } from "../assets/templates/runtime/.gitflow-sentinel/core/parser.mjs";
 import { DEFAULTS, validateConfig } from "../assets/templates/runtime/.gitflow-sentinel/core/config.mjs";
 import { evaluate, partition } from "../assets/templates/runtime/.gitflow-sentinel/core/policy.mjs";
@@ -192,6 +195,7 @@ test("planner never mutates an unreadable GitHub ruleset", (t) => {
 test("all registered modules expose the deterministic lifecycle contract", () => {
   assert.deepEqual(MODULE_ORDER, [
     "git",
+    "git-policy",
     "github",
     "agents",
     "docs",
@@ -239,6 +243,8 @@ test("inspection discovers bounded nested workspaces and Python managers without
   mkdirSync(path.join(root, "tools", "worker"), { recursive: true });
   writeFileSync(path.join(root, "tools", "worker", "pyproject.toml"), "[project]\nname = \"worker\"\n");
   writeFileSync(path.join(root, "tools", "worker", "uv.lock"), "version = 1\n");
+  mkdirSync(path.join(root, "scripts"), { recursive: true });
+  writeFileSync(path.join(root, "scripts", "standalone.py"), "print('detected')\n");
   mkdirSync(path.join(root, "node_modules", "ignored"), { recursive: true });
   writeFileSync(path.join(root, "node_modules", "ignored", "Cargo.toml"), "[package]\nname = \"ignored\"\n");
   mkdirSync(path.join(root, ".kiro", "skills", "ignored"), { recursive: true });
@@ -252,6 +258,165 @@ test("inspection discovers bounded nested workspaces and Python managers without
   assert.equal(snapshot.technology.manifests.some((file) => file.includes("node_modules")), false);
   assert.equal(snapshot.technology.scan.truncated, false);
   assert.equal(snapshot.provider.github.checked, false);
+});
+
+test("inspection detects Python source without a package manifest and ignores generated trees", (t) => {
+  const root = tempProject();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  writeFileSync(path.join(root, "main.py"), "print('project')\n");
+  mkdirSync(path.join(root, "__pycache__"), { recursive: true });
+  writeFileSync(path.join(root, "__pycache__", "cached.py"), "print('ignored')\n");
+  mkdirSync(path.join(root, "_bmad", "tools"), { recursive: true });
+  writeFileSync(path.join(root, "_bmad", "tools", "workflow.py"), "print('ignored')\n");
+
+  const snapshot = inspectProject(root);
+  assert.deepEqual(snapshot.technology.languages, ["python"]);
+  assert.equal(snapshot.technology.packageManagers.length, 0);
+  assert.equal(snapshot.technology.sourceSignals.python, 1);
+});
+
+test("desired state enables agents already present in the inspected project", (t) => {
+  const root = tempProject();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  git(root, "init", "-b", "main");
+  for (const directory of [".codex", ".claude", ".opencode"]) {
+    mkdirSync(path.join(root, directory), { recursive: true });
+  }
+  const snapshot = inspectProject(root);
+  const loaded = loadDesiredState(root, snapshot, { profile: "standard" });
+  assert.deepEqual(loaded.config.agents.enabled, ["codex", "claude", "opencode"]);
+});
+
+test("standard keeps historical Git policy optional while hardened manages it", (t) => {
+  const root = tempProject();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  git(root, "init", "-b", "main");
+  const standard = makePlan(root, "standard").plan;
+  const hardened = makePlan(root, "hardened").plan;
+  assert.equal(standard.actions.some((action) => action.module === "git-policy"), false);
+  assert.equal(hardened.actions.some((action) => action.module === "git-policy"), true);
+});
+
+test("guided setup derives exact R2 and R3 approvals from the reviewed plan", async () => {
+  const plan = finalizePlan({
+    id: "plan-guided-setup",
+    root: path.resolve("."),
+    desiredState: {},
+    snapshot: {},
+    recommendations: [],
+    actions: [
+      {
+        id: "001-docs-write-file",
+        module: "docs",
+        type: "write-file",
+        risk: "R2",
+        target: "README.md",
+        content: "managed\n",
+        description: "Update documentation.",
+        precondition: { exists: true, sha256: "fixture" },
+      },
+      {
+        id: "002-github-github-create",
+        module: "github",
+        type: "github-create",
+        risk: "R3",
+        description: "Create a private GitHub repository.",
+      },
+    ],
+  });
+  const prompts = [];
+  const approved = await collectSetupApprovals(plan, async (prompt) => {
+    prompts.push(prompt);
+    return true;
+  });
+  assert.equal(approved.approval, plan.hash);
+  assert.deepEqual(
+    approved.r2Approvals,
+    plan.approvalGroups.map((group) => `${group.id}:${group.hash}`),
+  );
+  assert.deepEqual(approved.r3Approvals, ["002-github-github-create"]);
+  assert.deepEqual(prompts.map((prompt) => prompt.kind), ["plan", "r2", "r3"]);
+
+  let asked = 0;
+  const refused = await collectSetupApprovals(plan, async () => {
+    asked += 1;
+    return asked < 2;
+  });
+  assert.equal(refused, null);
+  assert.equal(asked, 2);
+});
+
+test("guided setup summary is concise and shows detected project facts", (t) => {
+  const root = tempProject();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  git(root, "init", "-b", "main");
+  writeFileSync(path.join(root, "main.py"), "print('ok')\n");
+  const { snapshot, plan } = makePlan(root, "standard");
+  const output = renderSetupSummary(snapshot, plan);
+  assert.match(output, /Technologies : Python/);
+  assert.match(output, /Agents IA : codex/);
+  assert.match(output, /Plan : \d+ action\(s\)/);
+  assert.equal(output.includes(plan.hash), false);
+});
+
+test("AI skill install is additive, idempotent, and refuses unmanaged conflicts", (t) => {
+  const homeDir = tempProject("sentinel-ai-home-");
+  const conflictHome = tempProject("sentinel-ai-conflict-");
+  const failureHome = tempProject("sentinel-ai-failure-");
+  t.after(() => rmSync(homeDir, { recursive: true, force: true }));
+  t.after(() => rmSync(conflictHome, { recursive: true, force: true }));
+  t.after(() => rmSync(failureHome, { recursive: true, force: true }));
+  mkdirSync(path.join(homeDir, ".codex"), { recursive: true });
+  mkdirSync(path.join(homeDir, ".claude"), { recursive: true });
+
+  const plan = planAiInstall({ homeDir });
+  assert.deepEqual(plan.agents, ["codex", "claude"]);
+  assert.deepEqual(plan.destinations.map((item) => item.status), ["create", "create"]);
+  const applied = applyAiInstall(plan);
+  assert.equal(applied.applied, true);
+  assert.equal(existsSync(path.join(homeDir, ".agents", "skills", "configure-project", "SKILL.md")), true);
+  assert.equal(existsSync(path.join(homeDir, ".claude", "skills", "configure-project", "SKILL.md")), true);
+
+  const second = planAiInstall({ homeDir });
+  assert.deepEqual(second.destinations.map((item) => item.status), ["unchanged", "unchanged"]);
+  applyAiInstall(second);
+  const managedSkill = path.join(homeDir, ".agents", "skills", "configure-project", "SKILL.md");
+  writeFileSync(managedSkill, "first managed drift\n");
+  const stale = planAiInstall({ homeDir, agents: ["codex"] });
+  writeFileSync(managedSkill, "second managed drift\n");
+  assert.throws(() => applyAiInstall(stale), /plan is stale/i);
+  assert.equal(readFileSync(managedSkill, "utf8"), "second managed drift\n");
+
+  const unmanaged = path.join(conflictHome, ".agents", "skills", "configure-project");
+  mkdirSync(unmanaged, { recursive: true });
+  writeFileSync(path.join(unmanaged, "SKILL.md"), "unmanaged\n");
+  const conflict = planAiInstall({ homeDir: conflictHome, agents: ["codex"] });
+  assert.equal(conflict.destinations[0].status, "conflict");
+  assert.equal(applyAiInstall(conflict, { dryRun: true }).applied, false);
+  assert.throws(() => applyAiInstall(conflict), /refusing to replace unmanaged skill/i);
+  assert.equal(readFileSync(path.join(unmanaged, "SKILL.md"), "utf8"), "unmanaged\n");
+
+  const interrupted = planAiInstall({ homeDir: failureHome, agents: ["codex", "claude"] });
+  assert.throws(
+    () => applyAiInstall(interrupted, { simulateFailureAfter: 2 }),
+    /changes were rolled back/i,
+  );
+  assert.equal(existsSync(path.join(failureHome, ".agents", "skills", "configure-project")), false);
+  assert.equal(existsSync(path.join(failureHome, ".claude", "skills", "configure-project")), false);
+});
+
+test("setup plan-only is a one-command read-only greenfield preview", (t) => {
+  const root = tempProject("sentinel-setup-preview-");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const cli = path.resolve("scripts/cli.mjs");
+  const output = execFileSync(
+    process.execPath,
+    [cli, "setup", root, "--plan-only"],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  );
+  assert.match(output, /Plan : \d+ action\(s\)/);
+  assert.match(output, /Aucun changement appliqué/);
+  assert.deepEqual(readdirSync(root), []);
 });
 
 test("quality evidence requires approval, stores no output, and is bound to repository state", (t) => {

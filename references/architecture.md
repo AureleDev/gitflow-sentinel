@@ -57,8 +57,9 @@ Each registered module implements
 `detect`, `recommend`, `plan`, `apply`, `verify`, `rollback` and `uninstall`.
 The transaction engine routes actions and rollback through that registry
 instead of accepting arbitrary module/action combinations. V1 modules are Git,
-GitHub, agents, documentation, quality, CI, security, dependencies and release
-preparation.
+the optional historical local Git policy, GitHub, agents, documentation,
+quality, CI, security, dependencies and release preparation. The standard
+profile does not install the historical policy runtime.
 
 ## Local and provider inspection
 

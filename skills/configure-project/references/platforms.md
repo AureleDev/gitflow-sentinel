@@ -6,6 +6,11 @@ Keep durable repository expectations in `AGENTS.md`. Keep instructions factual, 
 
 Install the canonical skill under `.agents/skills/configure-project/`.
 
+For a one-time user installation, run
+`gitflow-sentinel ai install` for detected agents or
+`gitflow-sentinel ai install --all` for all three supported agents. Existing
+unmanaged skill directories are never overwritten.
+
 ## Codex
 
 Use `.agents/skills` for discovery. Merge Codex hooks or rules structurally and preserve unrelated settings. Require the repository to be trusted before project configuration can take effect.

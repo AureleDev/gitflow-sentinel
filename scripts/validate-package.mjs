@@ -40,6 +40,11 @@ try {
   const installed = path.join(consumer, "node_modules", "gitflow-sentinel");
   for (const relative of [
     "scripts/cli.mjs",
+    "scripts/setup.mjs",
+    "scripts/ai.mjs",
+    "scripts/core/ai-install.mjs",
+    "scripts/core/human-output.mjs",
+    "scripts/core/setup-flow.mjs",
     "scripts/core/transaction.mjs",
     "scripts/core/technology.mjs",
     "scripts/core/quality-evidence.mjs",
@@ -54,14 +59,36 @@ try {
 
   const target = path.join(temp, "plain-folder");
   mkdirSync(target);
+  const cli = path.join(installed, "scripts", "cli.mjs");
   const output = execFileSync(
     process.execPath,
-    [path.join(installed, "scripts", "cli.mjs"), "inspect", target, "--json"],
+    [cli, "inspect", target, "--json"],
     { cwd: target, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
   );
   const snapshot = JSON.parse(output);
   assert.equal(snapshot.git.isRepo, false);
   assert.equal(snapshot.kind, "gitflow-sentinel/project-snapshot");
+  const setupOutput = execFileSync(
+    process.execPath,
+    [cli, "setup", target, "--plan-only"],
+    { cwd: target, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  );
+  assert.match(setupOutput, /Aucun changement appliqué/);
+  const fakeHome = path.join(temp, "user-home");
+  mkdirSync(fakeHome);
+  const aiPreview = JSON.parse(execFileSync(
+    process.execPath,
+    [cli, "ai", "install", "--all", "--dry-run", "--json"],
+    {
+      cwd: target,
+      encoding: "utf8",
+      env: { ...process.env, HOME: fakeHome, USERPROFILE: fakeHome },
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  ));
+  assert.equal(aiPreview.applied, false);
+  assert.deepEqual(aiPreview.agents, ["codex", "claude", "opencode"]);
+  assert.equal(aiPreview.destinations.every((item) => item.status === "create"), true);
   assert.equal(readFileSync(path.join(installed, "package.json"), "utf8").includes("3.0.0-alpha.1"), true);
   console.log(`Package validation passed: ${packed[0].filename}`);
 } finally {

@@ -53,7 +53,8 @@ reports the errors and preserves the original bytes.
 
 - `minimal`: Git, agent instructions and essential security.
 - `standard`: the default foundation set.
-- `hardened`: stronger remote review and code-scanning controls.
+- `hardened`: stronger remote review, code-scanning controls, and the optional
+  historical local Git-policy runtime.
 - `custom`: only explicitly enabled modules.
 
 V1 custom profiles must include `git`, because approved transaction journals
@@ -86,9 +87,12 @@ Sentinel blocks the mutation instead of persisting that value in a backup.
 ## Legacy Git policy
 
 `.gitflow-sentinel.json` remains the compatibility configuration for the
-historical Git-policy module. When it is valid, Sentinel proposes a migration
-and preserves project-specific fields. When it is invalid, planning stops with a
-repair recommendation instead of falling back silently.
+historical `git-policy` module. It is enabled by `hardened` or explicitly by a
+custom profile, not by `standard`. When a valid legacy installation is found
+under `standard`, Sentinel reports the available migration without reinstalling
+the runtime. When the module is selected, Sentinel proposes a migration and
+preserves project-specific fields. When the legacy file is invalid, planning
+stops with a repair recommendation instead of falling back silently.
 
 Its branch-policy field reference remains in
 [`policy.md`](policy.md). New project-level decisions belong in

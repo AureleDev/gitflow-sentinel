@@ -12,6 +12,11 @@ The canonical procedure is installed at:
 .agents/skills/configure-project/
 ```
 
+`gitflow-sentinel ai install` performs this one-time user installation for
+detected agents. `gitflow-sentinel ai install --all` installs the shared
+portable copy plus Claude Code's native mirror. An unmanaged destination is
+reported as a conflict and is never replaced.
+
 `AGENTS.md` is the shared repository contract. It should describe project facts,
 commands, constraints and completion criteria without copying the full skill.
 

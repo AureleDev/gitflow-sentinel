@@ -313,7 +313,7 @@ function mergeHookFile(root, actions, relativePath, templateFile, ctx) {
   const target = path.join(root, relativePath);
   parseJsonFile(target, relativePath);
   const incoming = JSON.parse(renderTemplate(content(templateFile), ctx));
-  jsonMergeAction(root, actions, "git", relativePath, incoming, {
+  jsonMergeAction(root, actions, "git-policy", relativePath, incoming, {
     strategy: "hooks",
     description: `Merge Sentinel hook wiring into ${relativePath} without replacing unrelated settings.`,
   });
@@ -324,22 +324,22 @@ function addGuardrailRuntime(root, actions, recommendations, snapshot, config) {
   const runtimeRoot = path.join(TEMPLATE_ROOT, "runtime");
   for (const source of listFiles(runtimeRoot)) {
     const relative = path.relative(runtimeRoot, source).replaceAll("\\", "/");
-    fileAction(root, actions, "git", relative, renderTemplate(content(source), ctx), {
+    fileAction(root, actions, "git-policy", relative, renderTemplate(content(source), ctx), {
       description: `Install managed Git policy runtime ${relative}.`,
     });
   }
 
-  jsonMergeAction(root, actions, "git", ".gitflow-sentinel.json", guardrailPatch(root, config), {
+  jsonMergeAction(root, actions, "git-policy", ".gitflow-sentinel.json", guardrailPatch(root, config), {
     description: "Maintain the compatibility branch-policy configuration used by local hooks and CI.",
   });
-  managedBlockAction(root, actions, "git", ".gitattributes", "runtime-line-endings", `.gitflow-sentinel/**/*.mjs text eol=lf
+  managedBlockAction(root, actions, "git-policy", ".gitattributes", "runtime-line-endings", `.gitflow-sentinel/**/*.mjs text eol=lf
 .gitflow-sentinel/githooks/* text eol=lf
 `, "Keep installed hook scripts executable across CRLF checkouts.");
 
   if (config.agents.enabled.includes("codex")) {
     mergeHookFile(root, actions, ".codex/hooks.json", path.join(TEMPLATE_ROOT, "codex", ".codex", "hooks.json"), ctx);
     const rule = path.join(TEMPLATE_ROOT, "codex", ".codex", "rules", "git-safety.rules");
-    fileAction(root, actions, "git", ".codex/rules/git-safety.rules", renderTemplate(content(rule), ctx), {
+    fileAction(root, actions, "git-policy", ".codex/rules/git-safety.rules", renderTemplate(content(rule), ctx), {
       description: "Install Codex defense-in-depth rules for destructive Git commands.",
     });
   }
@@ -348,7 +348,7 @@ function addGuardrailRuntime(root, actions, recommendations, snapshot, config) {
   }
 
   const policyWorkflow = path.join(TEMPLATE_ROOT, "github", ".github", "workflows", "gitflow-policy.yml");
-  fileAction(root, actions, "git", ".github/workflows/gitflow-policy.yml", renderTemplate(content(policyWorkflow), ctx), {
+  fileAction(root, actions, "git-policy", ".github/workflows/gitflow-policy.yml", renderTemplate(content(policyWorkflow), ctx), {
     description: "Install server-side CI validation of the declared branch routes.",
   });
 
@@ -356,7 +356,7 @@ function addGuardrailRuntime(root, actions, recommendations, snapshot, config) {
     if (snapshot.git.hooksPath !== ".gitflow-sentinel/githooks") {
       actions.push({
         id: actionId(actions.length, "git", "git-config"),
-        module: "git",
+        module: "git-policy",
         type: "git-config",
         risk: "R2",
         description: "Activate the managed pre-commit, commit-msg, and pre-push hooks.",
@@ -367,7 +367,7 @@ function addGuardrailRuntime(root, actions, recommendations, snapshot, config) {
     }
   } else {
     recommendations.push({
-      module: "git",
+      module: "git-policy",
       severity: "decision",
       message: `Existing hook manager or hooksPath detected (${snapshot.git.hookManager || snapshot.git.hooksPath}); integrate Sentinel explicitly instead of replacing it.`,
     });
@@ -455,7 +455,15 @@ export function buildPlan(root, snapshot, config, { source = "generated", legacy
 *.key
 .gitflow-sentinel/logs/
 `, "Protect common local secret files without replacing existing ignore rules.");
-  if (modules.has("git")) addGuardrailRuntime(root, actions, recommendations, snapshot, config);
+  if (modules.has("git-policy")) {
+    addGuardrailRuntime(root, actions, recommendations, snapshot, config);
+  } else if (existsSync(path.join(root, ".gitflow-sentinel.json")) || existsSync(path.join(root, ".gitflow-sentinel"))) {
+    recommendations.push({
+      module: "git-policy",
+      severity: "info",
+      message: "Historical local Git guardrails were detected but are not managed by the standard profile. Use hardened or a custom profile with git-policy to update them.",
+    });
+  }
 
   if (modules.has("agents")) {
     managedBlockAction(root, actions, "agents", "AGENTS.md", "project-contract", agentsBlock(config), "Install the agent-neutral project operating contract.");

@@ -10,11 +10,14 @@
 // are reachable from any directory without that path.
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
+const VERSION = JSON.parse(readFileSync(path.join(HERE, "..", "package.json"), "utf8")).version;
 
 const COMMANDS = {
+  bootstrap: "bootstrap.mjs",
   setup: "setup.mjs",
   ai: "ai.mjs",
   inspect: "inspect.mjs",
@@ -41,6 +44,7 @@ function usage() {
   console.log(`Usage: gitflow-sentinel <command> [options]
 
 Commands:
+  bootstrap        Install the global CLI and all supported agent skills.
   setup            Inspect, explain, approve, apply, and verify in one guided flow.
   ai install       Install the configure-project skill for detected agents (or --all).
   inspect          Build a read-only, redacted project snapshot.
@@ -66,6 +70,10 @@ Run 'gitflow-sentinel <command> --help' for command-specific options.`);
 }
 
 const [cmd, ...rest] = process.argv.slice(2);
+if (cmd === "--version" || cmd === "-V" || cmd === "version") {
+  console.log(VERSION);
+  process.exit(0);
+}
 if (!cmd || cmd === "--help" || cmd === "-h") {
   usage();
   process.exit(cmd ? 0 : 1);

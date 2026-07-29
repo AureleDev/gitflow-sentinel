@@ -6,10 +6,10 @@ Keep durable repository expectations in `AGENTS.md`. Keep instructions factual, 
 
 Install the canonical skill under `.agents/skills/configure-project/`.
 
-For a one-time user installation, run
-`gitflow-sentinel ai install` for detected agents or
-`gitflow-sentinel ai install --all` for all three supported agents. Existing
-unmanaged skill directories are never overwritten.
+The explicit `bootstrap` installer installs the global CLI and this skill for
+all three supported agents without relying on npm lifecycle scripts. Use
+`gitflow-sentinel ai install --all` only to repair or repeat the agent
+integration. Existing unmanaged skill directories are never overwritten.
 
 ## Codex
 

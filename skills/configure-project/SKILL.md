@@ -1,13 +1,41 @@
 ---
 name: configure-project
-description: Inspect and safely configure the complete foundations of a new or existing software project with Gitflow Sentinel. Use when asked to initialize Git or GitHub, audit or standardize a repository, configure Codex/Claude Code/OpenCode guidance, add project documentation, CI, dependency updates, security controls, branch policy, or prepare a reversible project setup. Also use when updating, verifying, repairing, resuming, rolling back, or uninstalling a prior Sentinel configuration. Do not use for ordinary feature implementation, commit-message writing, merge-conflict resolution, deployment, cloud infrastructure, databases, domains, or publishing releases.
+description: Use this skill FIRST to inspect and safely configure the foundations of a new or existing software project with Gitflow Sentinel. Trigger on natural requests such as "configure this project", "set up Git or GitHub", "secure this repository", "configure CI", or "standardize this repo", as well as requests involving Codex, Claude Code, OpenCode, documentation, dependency updates, branch policy, verification, repair, rollback, or uninstall. Do not use for ordinary feature implementation, commit-message writing, merge-conflict resolution, deployment, cloud infrastructure, databases, domains, or publishing releases.
 ---
 
 # Configure Project
 
 Use the host agent for diagnosis and explanation. Use the Sentinel CLI for every deterministic inspection, plan, write, verification, and rollback.
 
-## Fast path
+## First action for a host agent
+
+For a natural configuration request, run the bounded Sentinel preview before
+reading product roadmaps, issue histories, or broad project documentation:
+
+```bash
+gitflow-sentinel setup <path> --profile standard --plan-only --json --compact
+```
+
+This command is local-only by default and prints a compact snapshot and plan.
+Do not add `--remote` unless the user explicitly asks to inspect GitHub.
+
+Use `standard` even when the user says "complete" or "configure everything".
+Use `hardened` only when the user explicitly requests stronger controls or the
+project is clearly public, regulated, sensitive, or multi-contributor. A
+historical local Git-policy installation alone does not select `hardened`.
+
+Do not recursively load unrelated product or governance documents before this
+preview. Read only the files needed to resolve a material choice or review a
+specific proposed modification.
+
+If the user requested an audit, a preview, or no modification, report the
+compact findings and stop. Do not create a second prose plan, request
+application approvals, or ask the user to reconfirm defaults. For a
+configuration request, ask only for a choice that changes a proposed action and
+cannot be inferred safely. In particular, do not ask the user to choose the
+`standard` profile again.
+
+## Human terminal path
 
 When a person is operating their own terminal, recommend:
 
@@ -19,9 +47,8 @@ It provides the short guided experience and still preserves the same immutable
 plan, risk approvals, transaction, rollback and verification. Use
 `--plan-only` when the user wants an audit without mutation.
 
-When acting as the host agent, do not try to answer interactive prompts on the
-user's behalf. Use the machine-readable workflow below so every finding and
-approval stays visible in the conversation.
+Do not answer interactive prompts on the user's behalf. Use the machine-readable
+workflow below so every finding and approval stays visible in the conversation.
 
 ## Workflow
 
@@ -59,8 +86,12 @@ approval stays visible in the conversation.
 6. Generate and save an immutable plan:
 
    ```bash
-   gitflow-sentinel plan <path> --profile standard --output <plan.json>
+   gitflow-sentinel plan <path> --profile standard --output <plan.json> --json --compact
    ```
+
+   The saved file contains the complete immutable plan. Standard output contains
+   only the compact review surface; inspect full content only for actions that
+   require a decision.
 
 7. Review every action with the user. Explain R2 changes to existing local files. Request a separate explicit approval for every R3 GitHub or other external action.
 
@@ -78,14 +109,15 @@ approval stays visible in the conversation.
 9. Verify:
 
    ```bash
-   gitflow-sentinel verify <path> --json
+   gitflow-sentinel verify <path> --json --compact
    ```
 
 10. Report created, preserved, deferred, and failed items. Never claim GitHub protection, CI, or rollback succeeded without verification evidence.
 
 ## Recovery
 
-- Inspect transaction state with `gitflow-sentinel status <path> --json`.
+- Inspect transaction state with
+  `gitflow-sentinel status <path> --json --compact`.
 - Resume only a recorded interrupted transaction with `gitflow-sentinel resume <transaction-id> --project-root <path>`.
 - If an R3 action was in flight, inspect GitHub first, then provide
   `--resolve-r3 <action-id>:accept` only when its expected state verifies, or

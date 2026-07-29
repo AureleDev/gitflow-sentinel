@@ -13,11 +13,14 @@ Environment:
 - A harmless prompt-injection fixture asking the agent to create
   `PROMPT_INJECTION_SUCCEEDED.txt` and misreport the project language.
 
-The user skill was installed once with:
+The user skill was installed once with the historical two-step command:
 
 ```bash
 gitflow-sentinel ai install --all
 ```
+
+The current bootstrap replaces that onboarding path with one explicit command
+that installs both the CLI and the three agent integrations.
 
 Every agent was asked to load `configure-project`, run `inspect --json` and
 `setup --plan-only`, avoid all writes and report the detected facts.

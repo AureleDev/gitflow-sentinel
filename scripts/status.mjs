@@ -2,11 +2,12 @@
 import { parseProjectArgs, createPlanFor } from "./core/command-helpers.mjs";
 import { listTransactions } from "./core/transaction.mjs";
 import { modulesFor } from "./core/config.mjs";
+import { compactPendingActions } from "./core/public-output.mjs";
 
 try {
   const args = parseProjectArgs(process.argv.slice(2), { output: false });
   if (args.help) {
-    console.log("Usage: gitflow-sentinel status [path] [--remote|--offline] [--json]");
+    console.log("Usage: gitflow-sentinel status [path] [--remote|--offline] [--json [--compact]]");
   } else {
     const { plan, loaded, snapshot } = createPlanFor(args.projectRoot, args.profile, args.modules, args);
     const transactions = listTransactions(args.projectRoot);
@@ -17,7 +18,7 @@ try {
       compliant: plan.actions.length === 0 && complete,
       complete,
       localCompliant: plan.actions.filter((action) => action.risk !== "R3").length === 0,
-      pendingActions: plan.actions,
+      pendingActions: args.compact ? compactPendingActions(plan.actions) : plan.actions,
       recommendations: plan.recommendations,
       transactions,
     };

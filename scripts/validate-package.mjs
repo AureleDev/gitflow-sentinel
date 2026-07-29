@@ -7,11 +7,17 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const packageVersion = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).version;
 const temp = mkdtempSync(path.join(os.tmpdir(), "gitflow-sentinel-package-"));
 const consumer = path.join(temp, "consumer");
 
-function runNpm(args, cwd) {
-  const options = { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] };
+function runNpm(args, cwd, environment = process.env) {
+  const options = {
+    cwd,
+    encoding: "utf8",
+    env: environment,
+    stdio: ["ignore", "pipe", "pipe"],
+  };
   const candidates = [
     process.env.npm_execpath,
     path.join(path.dirname(process.execPath), "node_modules", "npm", "bin", "npm-cli.js"),
@@ -42,9 +48,11 @@ try {
     "scripts/cli.mjs",
     "scripts/setup.mjs",
     "scripts/ai.mjs",
+    "scripts/bootstrap.mjs",
     "scripts/core/ai-install.mjs",
     "scripts/core/human-output.mjs",
     "scripts/core/managed-block.mjs",
+    "scripts/core/public-output.mjs",
     "scripts/core/setup-flow.mjs",
     "scripts/core/transaction.mjs",
     "scripts/core/technology.mjs",
@@ -53,6 +61,7 @@ try {
     "scripts/quality-check.mjs",
     "assets/sentinel/schema.json",
     "references/live-agent-validation.md",
+    "references/steve-validation.md",
     "references/visuals/index.html",
     "references/visuals/architecture.svg",
     "references/visuals/parcours-humain.svg",
@@ -77,6 +86,29 @@ try {
   const snapshot = JSON.parse(output);
   assert.equal(snapshot.git.isRepo, false);
   assert.equal(snapshot.kind, "gitflow-sentinel/project-snapshot");
+  assert.equal(execFileSync(process.execPath, [cli, "--version"], {
+    cwd: target,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim(), packageVersion);
+  const compactSetup = JSON.parse(execFileSync(
+    process.execPath,
+    [cli, "setup", target, "--plan-only", "--json", "--compact"],
+    { cwd: target, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  ));
+  assert.equal(JSON.stringify(compactSetup).includes("\"content\""), false);
+  const fullStatus = JSON.parse(execFileSync(
+    process.execPath,
+    [cli, "status", target, "--json"],
+    { cwd: target, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  ));
+  const compactStatus = JSON.parse(execFileSync(
+    process.execPath,
+    [cli, "status", target, "--json", "--compact"],
+    { cwd: target, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  ));
+  assert.equal(JSON.stringify(fullStatus.pendingActions).includes("\"content\""), true);
+  assert.equal(JSON.stringify(compactStatus.pendingActions).includes("\"content\""), false);
   const setupOutput = execFileSync(
     process.execPath,
     [cli, "setup", target, "--plan-only"],
@@ -98,7 +130,34 @@ try {
   assert.equal(aiPreview.applied, false);
   assert.deepEqual(aiPreview.agents, ["codex", "claude", "opencode"]);
   assert.equal(aiPreview.destinations.every((item) => item.status === "create"), true);
-  assert.equal(readFileSync(path.join(installed, "package.json"), "utf8").includes("3.0.0-alpha.1"), true);
+
+  const globalPrefix = path.join(temp, "global-prefix");
+  const automaticHome = path.join(temp, "automatic-home");
+  mkdirSync(globalPrefix);
+  mkdirSync(automaticHome);
+  execFileSync(process.execPath, [path.join(installed, "scripts", "bootstrap.mjs")], {
+    cwd: temp,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      GITFLOW_SENTINEL_HOME: automaticHome,
+      HOME: automaticHome,
+      USERPROFILE: automaticHome,
+      npm_config_prefix: globalPrefix,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  assert.equal(
+    existsSync(path.join(automaticHome, ".agents", "skills", "configure-project", "SKILL.md")),
+    true,
+    "global install did not install the shared AI skill",
+  );
+  assert.equal(
+    existsSync(path.join(automaticHome, ".claude", "skills", "configure-project", "SKILL.md")),
+    true,
+    "global install did not install the Claude Code skill",
+  );
+  assert.equal(JSON.parse(readFileSync(path.join(installed, "package.json"), "utf8")).version, packageVersion);
   console.log(`Package validation passed: ${packed[0].filename}`);
 } finally {
   rmSync(temp, { recursive: true, force: true });

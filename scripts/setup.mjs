@@ -6,17 +6,22 @@ import { renderSetupCompletion, renderSetupSummary } from "./core/human-output.m
 import { collectSetupApprovals } from "./core/setup-flow.mjs";
 import { renderPlan } from "./core/planner.mjs";
 import { applyPlan } from "./core/transaction.mjs";
+import { compactPlan, compactSnapshot } from "./core/public-output.mjs";
 
 async function main() {
   const args = parseProjectArgs(process.argv.slice(2), { setup: true });
   if (args.help) {
-    console.log("Usage: gitflow-sentinel setup [path] [--profile minimal|standard|hardened|custom] [--agents codex,claude,opencode] [--remote|--offline] [--plan-only] [--verbose] [--json]");
+    console.log("Usage: gitflow-sentinel setup [path] [--profile minimal|standard|hardened|custom] [--agents codex,claude,opencode] [--remote|--offline] [--plan-only] [--verbose] [--json [--compact]]");
     return;
   }
 
   const { snapshot, plan } = createPlanFor(args.projectRoot, args.profile, args.modules, args);
   if (args.json) {
-    console.log(JSON.stringify({ snapshot, plan, applied: false }, null, 2));
+    console.log(JSON.stringify({
+      snapshot: args.compact ? compactSnapshot(snapshot) : snapshot,
+      plan: args.compact ? compactPlan(plan) : plan,
+      applied: false,
+    }, null, 2));
     return;
   }
 

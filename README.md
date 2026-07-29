@@ -32,23 +32,25 @@ sensibles demandent une confirmation dédiée.
 Node.js 18 ou supérieur est requis.
 
 La version alpha n'est pas encore publiée sur npm. Depuis cette copie locale,
-installez l'outil une seule fois :
+une seule commande installe le CLI global et le skill pour Codex, Claude Code
+et OpenCode :
 
 ```bash
-npm install --global .
-gitflow-sentinel ai install --all
+npm run bootstrap
 ```
 
-Après la publication npm, la première commande deviendra simplement :
+Après la publication npm, cette commande deviendra simplement :
 
 ```bash
-npm install --global gitflow-sentinel@next
+npx --yes gitflow-sentinel@next bootstrap
 ```
 
-`ai install` place le même skill `configure-project` dans les emplacements
-utilisateur reconnus par Codex, Claude Code et OpenCode. Il n'ajoute aucun
-modèle, aucune clé API et aucun serveur : l'IA déjà présente sur l'ordinateur
-appelle le moteur déterministe de Sentinel.
+`bootstrap` est une action explicite : il installe le CLI global sans exécuter
+de script npm implicite, puis place le même skill `configure-project` dans les
+emplacements utilisateur reconnus par les trois agents. Il n'ajoute aucun
+modèle, aucune clé API et aucun serveur. Si un skill non géré occupe déjà la
+destination, il n'est jamais remplacé ; `gitflow-sentinel ai install --all`
+reste la commande de réparation après résolution du conflit.
 
 Ensuite, dans n'importe quel nouveau projet ou dépôt existant :
 
@@ -68,10 +70,20 @@ Pour seulement voir ce que Sentinel propose :
 gitflow-sentinel setup --plan-only
 ```
 
-Depuis Codex, Claude Code ou OpenCode, la demande peut être formulée normalement :
+Depuis Codex ou OpenCode, commencez simplement par :
 
-> Configure complètement ce projet avec le profil standard en utilisant
-> Sentinel. Explique-moi les choix avant toute action externe.
+> Configure-moi complètement ce projet.
+
+Le skill est conçu pour être sélectionné automatiquement. Comme ce choix reste
+une décision du modèle hôte, Claude Code fournit aussi le raccourci
+déterministe :
+
+```text
+/configure-project Configure-moi complètement ce projet.
+```
+
+Les deux parcours appellent le même CLI, calculent le même plan et attendent les
+mêmes approbations.
 
 ## Parcours avancé et automatisable
 
@@ -190,6 +202,8 @@ Voir :
 - [Modèle de menace](references/threat-model.md)
 - [Compatibilité des agents](references/platform-adapters.md)
 - [Validation réelle des agents](references/live-agent-validation.md)
+- [Validation brownfield sur Steve](references/steve-validation.md)
+- [Validation Windows, WSL/Linux et macOS](references/platform-validation.md)
 - [Migration](references/migration.md)
 
 ## Skill portable et plugin Codex
@@ -203,10 +217,11 @@ inspecter → expliquer → demander les choix non déductibles
 → planifier → approuver → appliquer → vérifier
 ```
 
-`gitflow-sentinel ai install` détecte les agents déjà installés ;
-`gitflow-sentinel ai install --all` prépare les trois agents supportés. Le même
-skill est partagé via `.agents/skills/configure-project` pour Codex/OpenCode et
-miroité sous `.claude/skills/configure-project` pour Claude Code. Le manifeste
+L'installateur `bootstrap` prépare les trois agents supportés en même temps que
+le CLI global. `gitflow-sentinel ai install --all` permet de réparer ou
+réinstaller cette intégration. Le même skill est partagé via
+`.agents/skills/configure-project` pour Codex/OpenCode et miroité sous
+`.claude/skills/configure-project` pour Claude Code. Le manifeste
 [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) prépare aussi une future
 distribution comme plugin Codex. Aucun modèle intégré, serveur MCP ou clé API
 n'est requis.

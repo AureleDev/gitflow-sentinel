@@ -2,6 +2,7 @@
 import { parseProjectArgs, createPlanFor } from "./core/command-helpers.mjs";
 import { rulesetMatches } from "./core/providers/github.mjs";
 import { modulesFor } from "./core/config.mjs";
+import { compactPendingActions } from "./core/public-output.mjs";
 
 function verifyRuleset(snapshot, config) {
   if (!snapshot.provider.github.checked) return { status: "pending", detail: "GitHub was not queried; rerun with --remote." };
@@ -18,7 +19,7 @@ function verifyRuleset(snapshot, config) {
 try {
   const args = parseProjectArgs(process.argv.slice(2), { output: false });
   if (args.help) {
-    console.log("Usage: gitflow-sentinel verify [path] [--remote|--offline] [--json]");
+    console.log("Usage: gitflow-sentinel verify [path] [--remote|--offline] [--json [--compact]]");
   } else {
     const { snapshot, loaded, plan } = createPlanFor(args.projectRoot, args.profile, args.modules, args);
     const localActions = plan.actions.filter((action) => !action.type.startsWith("github-"));
@@ -31,7 +32,13 @@ try {
     }
     const failed = checks.some((check) => ["fail", "error"].includes(check.status));
     const pending = checks.some((check) => check.status === "pending");
-    const value = { root: args.projectRoot, compliant: !failed && !pending, complete: !pending, checks, pendingActions: plan.actions };
+    const value = {
+      root: args.projectRoot,
+      compliant: !failed && !pending,
+      complete: !pending,
+      checks,
+      pendingActions: args.compact ? compactPendingActions(plan.actions) : plan.actions,
+    };
     if (args.json) console.log(JSON.stringify(value, null, 2));
     else {
       console.log(`Sentinel verification: ${value.compliant ? "PASS" : pending && !failed ? "INCOMPLETE" : "FAIL"}`);

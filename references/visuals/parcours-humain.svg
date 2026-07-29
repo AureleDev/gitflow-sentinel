@@ -19,20 +19,15 @@
   <text class="subtitle" x="52" y="84">Le chemin court masque la complexité, pas les décisions importantes.</text>
 
   <text class="section" x="52" y="130">UNE FOIS PAR ORDINATEUR</text>
-  <rect class="node install" x="52" y="151" width="250" height="108" rx="15"/>
-  <text class="label" x="76" y="185">1. Installer la commande</text>
-  <text class="cmd" x="76" y="216">npm install --global …</text>
-  <text class="small" x="76" y="240">Locale aujourd’hui · npm @next ensuite</text>
-  <rect class="node install" x="348" y="151" width="270" height="108" rx="15"/>
-  <text class="label" x="372" y="185">2. Installer le skill IA</text>
-  <text class="cmd" x="372" y="216">gitflow-sentinel ai install --all</text>
-  <text class="small" x="372" y="240">Codex · Claude Code · OpenCode</text>
-  <path class="flow" d="M302 205 L348 205"/>
-  <rect class="node" x="662" y="151" width="486" height="108" rx="15"/>
-  <text class="label" x="686" y="185">Résultat</text>
-  <text class="body" x="686" y="214">La commande et le même protocole sont disponibles dans tous les projets.</text>
-  <text class="small" x="686" y="239">Aucun modèle, serveur MCP ou clé API supplémentaire.</text>
-  <path class="flow" d="M618 205 L662 205"/>
+  <rect class="node install" x="52" y="151" width="430" height="108" rx="15"/>
+  <text class="label" x="76" y="185">1. Une seule commande</text>
+  <text class="cmd" x="76" y="216">npx gitflow-sentinel@next bootstrap</text>
+  <text class="small" x="76" y="240">Installe le CLI et le skill pour les trois agents</text>
+  <rect class="node" x="548" y="151" width="600" height="108" rx="15"/>
+  <text class="label" x="572" y="185">Résultat immédiat</text>
+  <text class="body" x="572" y="214">Demande naturelle ; Claude garantit le routage avec /configure-project.</text>
+  <text class="small" x="572" y="239">Même protocole, sans modèle, serveur MCP ou clé API supplémentaire.</text>
+  <path class="flow" d="M482 205 L548 205"/>
 
   <line class="lane" x1="52" y1="295" x2="1148" y2="295"/>
   <text class="section" x="52" y="331">POUR CHAQUE PROJET</text>

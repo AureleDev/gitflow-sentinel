@@ -8,6 +8,14 @@ All notable changes to this project are documented here. The format is based on
 
 ### Added
 
+- An explicit one-command bootstrap now installs both the global CLI and the
+  portable agent skill without relying on implicit npm lifecycle scripts.
+- Claude Code now has a documented deterministic `/configure-project`
+  fallback; natural skill selection is no longer presented as guaranteed by
+  every host model.
+- Compact JSON review surfaces for setup and plans, plus compact status and
+  verification actions that omit generated file bodies.
+- CLI `--version` support.
 - Visual atlas covering the product architecture, human and agent journeys,
   project lifecycle, transaction safety, supported agents and the role of WSL.
 - Guided `gitflow-sentinel setup` flow for inspect, explain, approve, apply and
@@ -42,6 +50,8 @@ All notable changes to this project are documented here. The format is based on
 
 ### Changed
 
+- The portable skill now routes natural configuration requests directly to a
+  bounded Sentinel preview before broad project-document discovery.
 - The standard profile now keeps the historical local Git-policy runtime
   optional; it remains available through `hardened` or a custom profile.
 - Existing agent directories are selected automatically when no explicit agent

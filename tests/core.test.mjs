@@ -41,6 +41,7 @@ import {
 import { planAiInstall, applyAiInstall } from "../scripts/core/ai-install.mjs";
 import { collectSetupApprovals } from "../scripts/core/setup-flow.mjs";
 import { renderSetupCompletion, renderSetupSummary } from "../scripts/core/human-output.mjs";
+import { compactPendingActions, compactPlan, compactSnapshot } from "../scripts/core/public-output.mjs";
 import { mergeManagedBlock } from "../scripts/core/managed-block.mjs";
 import { analyze } from "../assets/templates/runtime/.gitflow-sentinel/core/parser.mjs";
 import { DEFAULTS, validateConfig } from "../assets/templates/runtime/.gitflow-sentinel/core/config.mjs";
@@ -358,6 +359,27 @@ test("guided setup summary is concise and shows detected project facts", (t) => 
   assert.match(output, /Agents IA : codex/);
   assert.match(output, /Plan : \d+ action\(s\)/);
   assert.equal(output.includes(plan.hash), false);
+});
+
+test("compact agent output preserves decisions without embedding generated bodies", (t) => {
+  const root = tempProject("sentinel-compact-output-");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const { snapshot, plan } = makePlan(root, "standard");
+  const compact = compactPlan(plan);
+  const compactText = JSON.stringify(compact);
+  assert.equal(compact.actions.length, plan.actions.length);
+  assert.equal(compact.hash, plan.hash);
+  assert.deepEqual(compact.approvalGroups, plan.approvalGroups);
+  assert.equal(compactText.includes("\"content\""), false);
+  assert.equal(compactText.includes("\"precondition\""), false);
+
+  const compactProject = compactSnapshot(snapshot);
+  assert.deepEqual(compactProject.technology.languages, snapshot.technology.languages);
+  assert.equal(JSON.stringify(compactProject).includes("\"remotes\""), false);
+
+  const compactActions = compactPendingActions(plan.actions);
+  assert.equal(compactActions.length, plan.actions.length);
+  assert.equal(JSON.stringify(compactActions).includes("\"content\""), false);
 });
 
 test("managed blocks use file-appropriate comments and migrate legacy ignore markers", () => {

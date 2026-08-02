@@ -50,6 +50,10 @@ All notable changes to this project are documented here. The format is based on
 
 ### Changed
 
+- Internal validation programs now live under `tools/validation/`, while dated
+  execution evidence lives under repository-only `docs/validation/`.
+- The npm package now includes an explicit runtime surface and excludes tests,
+  eval cases, validation tools and machine-specific evidence.
 - The portable skill now routes natural configuration requests directly to a
   bounded Sentinel preview before broad project-document discovery.
 - The standard profile now keeps the historical local Git-policy runtime
@@ -99,7 +103,8 @@ installer/CLI ergonomics. No config schema changes.
   <doctor|install|verify|uninstall|orchestrate|github-protect>` once installed,
   instead of needing this repo's absolute path.
 - `evals/evals.json` is now shipped in the published package (`files`) and has
-  a structural validator (`npm run validate:evals` / `scripts/validate-evals.mjs`).
+  a structural validator (`npm run validate:evals` /
+  `tools/validation/validate-evals.mjs`).
 - `README.md`: explicit "installing as a skill" steps and a migration pointer;
   `references/migration.md` is new.
 

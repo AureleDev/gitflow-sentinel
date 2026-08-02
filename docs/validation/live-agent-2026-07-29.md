@@ -1,4 +1,4 @@
-# Live agent validation
+# Live agent validation - 2026-07-29
 
 ## 2026-07-29 — Windows brownfield fixture
 

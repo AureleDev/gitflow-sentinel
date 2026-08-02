@@ -201,9 +201,8 @@ Voir :
 - [État désiré et configuration](references/configuration.md)
 - [Modèle de menace](references/threat-model.md)
 - [Compatibilité des agents](references/platform-adapters.md)
-- [Validation réelle des agents](references/live-agent-validation.md)
-- [Validation brownfield sur Steve](references/steve-validation.md)
 - [Validation Windows, WSL/Linux et macOS](references/platform-validation.md)
+- [Preuves de validation conservées dans le dépôt](https://github.com/AureleDev/gitflow-sentinel/tree/main/docs/validation)
 - [Migration](references/migration.md)
 
 ## Skill portable et plugin Codex
@@ -249,7 +248,7 @@ La matrice brownfield peut être exécutée sur des copies temporaires de projet
 réels, sans modifier les sources :
 
 ```bash
-node scripts/validate-project-matrix.mjs \
+node tools/validation/validate-project-matrix.mjs \
   --source /path/to/python-project \
   --source /path/to/node-project \
   --source /path/to/monorepo \

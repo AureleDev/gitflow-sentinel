@@ -6,7 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const packageVersion = JSON.parse(readFileSync(path.join(root, "package.json"), "utf8")).version;
 const temp = mkdtempSync(path.join(os.tmpdir(), "gitflow-sentinel-package-"));
 const consumer = path.join(temp, "consumer");
@@ -60,8 +60,6 @@ try {
     "scripts/core/modules/registry.mjs",
     "scripts/quality-check.mjs",
     "assets/sentinel/schema.json",
-    "references/live-agent-validation.md",
-    "references/steve-validation.md",
     "references/visuals/index.html",
     "references/visuals/architecture.svg",
     "references/visuals/parcours-humain.svg",
@@ -69,10 +67,20 @@ try {
     "references/visuals/cycle-vie.svg",
     "references/visuals/securite-transactions.svg",
     "references/visuals/plateformes-wsl.svg",
+    "references/platform-validation.md",
     "skills/configure-project/SKILL.md",
     ".codex-plugin/plugin.json",
   ]) {
     assert.equal(existsSync(path.join(installed, relative)), true, `archive is missing ${relative}`);
+  }
+  for (const relative of [
+    "docs/validation/live-agent-2026-07-29.md",
+    "docs/validation/steve-2026-07-29.md",
+    "docs/validation/platform-status-2026-07-29.md",
+    "evals/evals.json",
+    "tools/validation/validate-package.mjs",
+  ]) {
+    assert.equal(existsSync(path.join(installed, relative)), false, `archive must exclude ${relative}`);
   }
 
   const target = path.join(temp, "plain-folder");

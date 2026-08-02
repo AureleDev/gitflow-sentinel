@@ -7,16 +7,16 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
-import { SKILL_ROOT, TEMPLATE_ROOT, listFiles, run, isFailure, nextValue, resolveProjectRoot } from "./lib.mjs";
-import { DEFAULTS } from "../assets/templates/runtime/.gitflow-sentinel/core/config.mjs";
-import { analyze } from "../assets/templates/runtime/.gitflow-sentinel/core/parser.mjs";
-import { evaluate, partition } from "../assets/templates/runtime/.gitflow-sentinel/core/policy.mjs";
-import { parseInput, toolName, commands, cwd as eventCwd } from "../assets/templates/runtime/.gitflow-sentinel/core/event.mjs";
+import { SKILL_ROOT, TEMPLATE_ROOT, listFiles, run, isFailure, nextValue, resolveProjectRoot } from "../../scripts/lib.mjs";
+import { DEFAULTS } from "../../assets/templates/runtime/.gitflow-sentinel/core/config.mjs";
+import { analyze } from "../../assets/templates/runtime/.gitflow-sentinel/core/parser.mjs";
+import { evaluate, partition } from "../../assets/templates/runtime/.gitflow-sentinel/core/policy.mjs";
+import { parseInput, toolName, commands, cwd as eventCwd } from "../../assets/templates/runtime/.gitflow-sentinel/core/event.mjs";
 
 const execFileAsync = promisify(execFile);
 
 function usage() {
-  return "Usage: node verify.mjs [--project-root <path>] [--skip-git-readiness]";
+  return "Usage: node tools/validation/verify-policy.mjs [--project-root <path>] [--skip-git-readiness]";
 }
 
 function parseArgs(argv) {
@@ -70,6 +70,7 @@ console.log("1) Syntax checks");
 const scripts = [
   ...listFiles(path.join(TEMPLATE_ROOT, "runtime")).filter((f) => f.endsWith(".mjs")),
   ...listFiles(path.join(SKILL_ROOT, "scripts")).filter((f) => f.endsWith(".mjs")),
+  ...listFiles(path.join(SKILL_ROOT, "tools", "validation")).filter((f) => f.endsWith(".mjs")),
 ];
 // Each file's syntax check is independent, so run them concurrently instead of
 // spawning ~20 Node processes back to back — the dominant cost on Windows is

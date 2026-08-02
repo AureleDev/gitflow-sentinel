@@ -16,7 +16,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const temp = mkdtempSync(path.join(os.tmpdir(), "gitflow-sentinel-self-host-"));
 const consumer = path.join(temp, "consumer");
 const brownfield = path.join(temp, "sentinel-copy");

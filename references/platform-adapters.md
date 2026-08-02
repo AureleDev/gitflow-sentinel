@@ -29,7 +29,9 @@ On Windows, a host-level Codex sandbox helper can fail before Sentinel starts.
 Treat that as an incomplete agent run. Never disable the sandbox merely to
 continue against a real or untrusted project; reproduce the problem only in a
 disposable isolated fixture. See
-[`live-agent-validation.md`](live-agent-validation.md) for the validated case.
+The dated live-agent evidence is kept in the repository-only
+[`docs/validation`](https://github.com/AureleDev/gitflow-sentinel/tree/main/docs/validation)
+directory.
 
 ## Claude Code
 

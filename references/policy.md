@@ -80,7 +80,7 @@ Required CI and GitHub rulesets are the shared enforcement layers. See
 
 ## Validation scenarios
 
-These are encoded as assertions in `scripts/verify.mjs`; run it to confirm the
+These are encoded as assertions in `tools/validation/verify-policy.mjs`; run it to confirm the
 contract holds after any change to the engine or config:
 
 - commit/merge on `main`/`dev`/`master` → block, unless override;

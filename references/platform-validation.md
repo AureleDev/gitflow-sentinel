@@ -1,58 +1,52 @@
-# Validation Windows, Linux et macOS
+# Platform validation guide
 
-## État vérifié
+Gitflow Sentinel supports Windows directly. WSL is optional for normal use and
+provides an additional real Linux validation environment on a Windows machine.
 
-- Windows natif : le paquet réel, le bootstrap global, le cycle transactionnel
-  et les essais brownfield sur Steve ont été exécutés localement.
-- WSL/Linux : WSL n'est pas encore installé sur la machine de test.
-- macOS : la matrice CI est prête, mais le résultat de cette branche ne peut pas
-  être déclaré tant qu'elle n'a pas été poussée et exécutée par GitHub Actions.
+## Windows
 
-WSL n'est pas requis pour utiliser Sentinel sous Windows. Il fournit une
-validation Linux réelle sur la même machine et contourne aussi la limitation
-observée du bac à sable Codex sous Windows.
+Run the same package and transaction checks used by CI:
 
-## Installer WSL
+```powershell
+npm install --ignore-scripts
+npm run verify
+npm run validate:evals
+npm run validate:package
+npm run validate:self-host
+```
 
-Ouvrir PowerShell **en tant qu'administrateur**, puis exécuter :
+## WSL and Linux
+
+To add WSL, open PowerShell as an administrator and run:
 
 ```powershell
 wsl --install
 ```
 
-Redémarrer Windows si demandé. Au premier lancement d'Ubuntu, créer le nom
-d'utilisateur et le mot de passe Linux. La procédure officielle Microsoft est
-documentée sur
-[Installer WSL](https://learn.microsoft.com/windows/wsl/install).
+Restart Windows if requested, open Ubuntu, then create the Linux username and
+password. Microsoft documents the current procedure in
+[Install WSL](https://learn.microsoft.com/windows/wsl/install).
 
-Cette installation demande une élévation administrateur et peut redémarrer la
-machine ; Sentinel ne la déclenche donc jamais automatiquement.
-
-## Rejouer le contrôle Linux
-
-Après le redémarrage, ouvrir Ubuntu puis installer une version Node prise en
-charge et Git. Depuis une copie Linux du dépôt :
+From a Linux copy of the repository, run:
 
 ```bash
 npm install --ignore-scripts
 npm run verify
 npm run validate:evals
 npm run validate:package
+npm run validate:self-host
 ```
 
-Le test doit aussi exécuter `npm run bootstrap` avec un dossier utilisateur et
-un préfixe npm isolés, puis vérifier le même cycle
-`plan -> apply -> verify -> rollback`.
+The package validation uses isolated temporary user and npm prefix directories;
+it does not replace an existing agent skill or mutate another project.
 
-## Contrôle macOS
+## macOS
 
-Le workflow `.github/workflows/ci.yml` exécute déjà la même suite sur :
+The CI workflow runs the verification and real-package checks on Ubuntu,
+Windows and macOS with every supported Node.js version in the matrix. A
+platform is considered verified for a commit only when its corresponding jobs
+are green. See
+[GitHub-hosted runners](https://docs.github.com/actions/concepts/runners/github-hosted-runners).
 
-- Ubuntu, Windows et macOS ;
-- Node.js 18 et 22 ;
-- l'archive npm réelle et son bootstrap isolé.
-
-La compatibilité macOS sera considérée comme vérifiée seulement lorsque les
-deux jobs macOS de cette branche seront verts. Les runners GitHub hébergés
-fournissent des machines virtuelles neuves pour chaque job ; voir la
-[documentation GitHub sur les runners hébergés](https://docs.github.com/actions/concepts/runners/github-hosted-runners).
+Historical machine-specific results belong under `docs/validation/` and are
+not included in the npm package.

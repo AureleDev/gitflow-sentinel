@@ -67,6 +67,9 @@ All notable changes to this project are documented here. The format is based on
 
 ### Fixed
 
+- A root `package.json` without a lockfile now defaults to npm, while an
+  explicit `packageManager` field remains authoritative; npm Dependabot is no
+  longer omitted from such projects.
 - Managed blocks in `.gitignore` and `.gitattributes` use valid `#` comments
   and migrate prior HTML markers without creating duplicates.
 - Guided setup distinguishes locally compliant foundations from GitHub state

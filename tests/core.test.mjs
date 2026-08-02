@@ -254,12 +254,41 @@ test("inspection discovers bounded nested workspaces and Python managers without
 
   const snapshot = inspectProject(root);
   assert.deepEqual(snapshot.technology.languages, ["javascript", "python", "typescript"]);
-  assert.deepEqual(snapshot.technology.packageManagers, ["uv"]);
+  assert.deepEqual(snapshot.technology.packageManagers, ["npm", "uv"]);
   assert.equal(snapshot.technology.monorepo, true);
   assert.equal(snapshot.technology.packages.length, 2);
   assert.equal(snapshot.technology.manifests.some((file) => file.includes("node_modules")), false);
   assert.equal(snapshot.technology.scan.truncated, false);
   assert.equal(snapshot.provider.github.checked, false);
+});
+
+test("inspection defaults root package.json to npm and honors packageManager", (t) => {
+  const npmRoot = tempProject();
+  const pnpmRoot = tempProject();
+  t.after(() => {
+    rmSync(npmRoot, { recursive: true, force: true });
+    rmSync(pnpmRoot, { recursive: true, force: true });
+  });
+  writeFileSync(path.join(npmRoot, "package.json"), JSON.stringify({ name: "npm-project" }));
+  writeFileSync(path.join(pnpmRoot, "package.json"), JSON.stringify({
+    name: "pnpm-project",
+    packageManager: "pnpm@10.0.0",
+  }));
+
+  assert.deepEqual(inspectProject(npmRoot).technology.packageManagers, ["npm"]);
+  assert.deepEqual(inspectProject(pnpmRoot).technology.packageManagers, ["pnpm"]);
+});
+
+test("standard plans npm Dependabot for a root package without a lockfile", (t) => {
+  const root = tempProject();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  writeFileSync(path.join(root, "package.json"), JSON.stringify({ name: "npm-project" }));
+
+  const { plan } = makePlan(root, "standard");
+  const action = plan.actions.find((candidate) => candidate.target === ".github/dependabot.yml");
+  assert.ok(action);
+  assert.match(action.content, /package-ecosystem: "npm"/);
+  assert.match(action.content, /package-ecosystem: "github-actions"/);
 });
 
 test("inspection detects Python source without a package manifest and ignores generated trees", (t) => {

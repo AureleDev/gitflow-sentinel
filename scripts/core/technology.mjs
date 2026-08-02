@@ -193,6 +193,13 @@ export function inspectTechnology(root, {
   }
 
   const rootPackage = readJson(path.join(root, "package.json"));
+  const declaredManager = typeof rootPackage?.packageManager === "string"
+    ? rootPackage.packageManager.match(/^(npm|pnpm|yarn|bun)(?:@|$)/i)?.[1]?.toLowerCase()
+    : "";
+  if (declaredManager) managers.add(declaredManager);
+  if (rootPackage && !["npm", "pnpm", "yarn", "bun"].some((manager) => managers.has(manager))) {
+    managers.add("npm");
+  }
   const workspaceMarkers = [
     "pnpm-workspace.yaml",
     "turbo.json",

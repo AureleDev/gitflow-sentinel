@@ -1,6 +1,6 @@
 # Desired state configuration
 
-The V3 declaration is `sentinel.config.json`. It is validated before planning by
+The current declaration is `sentinel.config.json`. It is validated before planning by
 [`assets/sentinel/schema.json`](../assets/sentinel/schema.json) and by semantic
 checks in the runtime.
 

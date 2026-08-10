@@ -1,6 +1,6 @@
 # Migration to Sentinel Core
 
-V3 preserves the package name and the historical runtime while moving project
+Sentinel Core preserves the package name and the historical runtime while moving project
 configuration to `sentinel.config.json` and transactions to `.git/sentinel/`.
 
 ## Safe sequence

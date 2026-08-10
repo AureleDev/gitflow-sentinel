@@ -1,6 +1,6 @@
 {
   "name": "gitflow-sentinel",
-  "version": "3.0.0-alpha.1",
+  "version": "0.0.3-alpha.1",
   "description": "Cross-agent project-foundation orchestrator with inspection, immutable plans, transactional apply/rollback, Git policy, CI, documentation, security, and GitHub adapters.",
   "type": "module",
   "bin": {

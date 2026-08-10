@@ -4,7 +4,7 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [3.0.0-alpha.1] — 2026-07-27
+## [0.0.3-alpha.1] — 2026-08-10
 
 ### Added
 
@@ -50,6 +50,8 @@ All notable changes to this project are documented here. The format is based on
 
 ### Changed
 
+- Version nomenclature now starts at `0.0.3-alpha.1` to communicate that the
+  product is experimental and has not reached its first stable release.
 - Internal validation programs now live under `tools/validation/`, while dated
   execution evidence lives under repository-only `docs/validation/`.
 - The npm package now includes an explicit runtime surface and excludes tests,

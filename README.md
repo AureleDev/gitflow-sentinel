@@ -8,7 +8,7 @@ un plan immuable, puis n'applique ce plan qu'après approbation explicite. Les
 changements locaux sont transactionnels et restaurables. Les actions GitHub
 sensibles demandent une confirmation dédiée.
 
-> Version actuelle : `3.0.0-alpha.1`. Le nom historique et les anciennes
+> Version actuelle : `0.0.3-alpha.1`. Le nom historique et les anciennes
 > commandes restent disponibles pendant la migration.
 
 ## Principes

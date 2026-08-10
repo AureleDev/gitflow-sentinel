@@ -68,13 +68,18 @@ flowchart TD
 
 ## Version model
 
+- Before the first stable release, public product versions use
+  `0.0.<iteration>-alpha.<revision>`. The current line is `0.0.3-alpha.1`;
+  subsequent corrections on the same line increment the alpha revision.
+- A stable `1.0.0` is reserved for the point where installation, contracts,
+  cross-platform validation and upgrade behavior are declared stable.
 - `.gitflow-sentinel/VERSION` is aligned with the package version. The
   SessionStart hook compares it with an available installed CLI and warns on
   drift; the doctor performs the same comparison during an explicit audit.
 - Bump it when the engine, hooks, or wiring change in a way repos should detect,
   then re-run install to upgrade managed files in place (advisory docs are left
   to the agent).
-- Historical 2.x runtimes remain migration inputs. V3 aligns package and runtime
+- Historical 2.x runtimes remain migration inputs. Sentinel Core aligns package and runtime
   versions so a project no longer exposes two unrelated current version lines.
 
 ## Idempotence

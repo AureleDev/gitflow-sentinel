@@ -3,3 +3,13 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 *.log
+
+# gitflow-sentinel:start project-foundations
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+.gitflow-sentinel/logs/
+# gitflow-sentinel:end project-foundations

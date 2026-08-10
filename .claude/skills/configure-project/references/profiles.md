@@ -26,4 +26,6 @@ Use only when the user explicitly selects modules. Record enabled modules in `se
 
 The supported V1 modules are `git`, `git-policy`, `github`, `agents`, `docs`,
 `quality`, `ci`, `security`, `dependencies`, and `release`. `git-policy` is
-optional and is not enabled by `standard`.
+optional and is not enabled silently by `standard`. Interactive `setup` asks
+whether to add it, while explaining that local hooks provide early feedback and
+that required CI and remote rules remain the shared authority.

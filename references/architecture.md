@@ -60,6 +60,8 @@ instead of accepting arbitrary module/action combinations. V1 modules are Git,
 the optional historical local Git policy, GitHub, agents, documentation,
 quality, CI, security, dependencies and release preparation. The standard
 profile does not install the historical policy runtime.
+Interactive setup offers it as an explicit choice and describes it as local
+defense in depth, not shared enforcement.
 
 ## Local and provider inspection
 

@@ -43,6 +43,15 @@ function run(command, args, cwd) {
   });
 }
 
+function runAllowing(command, args, cwd, allowedStatuses) {
+  try {
+    return { status: 0, stdout: run(command, args, cwd) };
+  } catch (error) {
+    if (!allowedStatuses.includes(error.status)) throw error;
+    return { status: error.status, stdout: String(error.stdout || "") };
+  }
+}
+
 function git(target, ...args) {
   return run("git", ["-C", target, ...args], target).trim();
 }
@@ -131,15 +140,25 @@ try {
   ], brownfield));
   assert.equal(transaction.status, "completed");
 
-  const verification = JSON.parse(run(process.execPath, [
+  const verificationResult = runAllowing(process.execPath, [
     cli,
     "verify",
     brownfield,
     "--profile",
     "minimal",
     "--json",
-  ], brownfield));
-  assert.equal(verification.compliant, true);
+  ], brownfield, [2]);
+  const verification = JSON.parse(verificationResult.stdout);
+  assert.equal(verification.checks.find((check) => check.id === "config")?.status, "pass");
+  assert.equal(verification.checks.find((check) => check.id === "local-foundations")?.status, "pass");
+  assert.equal(verification.pendingActions.length, 0);
+  const incompleteChecks = verification.checks.filter((check) => check.status !== "pass");
+  if (verificationResult.status === 2) {
+    assert.deepEqual(incompleteChecks.map((check) => check.id), ["github-ruleset"]);
+    assert.equal(incompleteChecks[0].status, "pending");
+  } else {
+    assert.equal(verification.compliant, true);
+  }
   const secondPlan = JSON.parse(run(process.execPath, [
     cli,
     "plan",

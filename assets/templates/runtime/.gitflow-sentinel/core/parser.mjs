@@ -505,13 +505,38 @@ export function isGitMutation(seg) {
   return false;
 }
 
-const SHELL_WRITERS = /\b(set-content|add-content|out-file|new-item|remove-item|rm|del|erase|mv|cp|move-item|copy-item|rename-item|clear-content|mkdir|rmdir|touch|tee)\b/i;
-const REDIRECT = /(^|[^0-9>])>(?![>&])|\b\d+>(?!\s*(?:\$null|nul)\b)/;
+const SHELL_WRITERS = new Set([
+  "set-content", "add-content", "out-file", "new-item", "remove-item", "rm", "del", "erase",
+  "mv", "cp", "move-item", "copy-item", "rename-item", "clear-content", "mkdir", "rmdir", "touch", "tee",
+]);
+
+function redirectsToFile(raw) {
+  let quote = null;
+  for (let i = 0; i < raw.length; i += 1) {
+    const ch = raw[i];
+    if (quote) {
+      if (ch === quote) quote = null;
+      continue;
+    }
+    if (ch === "\"" || ch === "'" || ch === "`") {
+      quote = ch;
+      continue;
+    }
+    if (ch !== ">") continue;
+    if (raw[i + 1] === "&") continue; // descriptor duplication, e.g. 2>&1
+    while (raw[i + 1] === ">") i += 1;
+    let rest = raw.slice(i + 1).trimStart();
+    const target = rest.match(/^(?:["']([^"']+)["']|([^\s;&|]+))/)?.slice(1).find(Boolean) || "";
+    if (!target) return true;
+    if (!["/dev/null", "nul", "$null"].includes(target.toLowerCase())) return true;
+  }
+  return false;
+}
 
 export function isShellFileWrite(seg) {
   if (seg.git || seg.gh) return false; // git/gh handled by dedicated rules
   if (SHELLS.has(String(seg.program).toLowerCase()) || ["eval", "xargs", "ssh", "find"].includes(seg.program)) return false; // wrappers re-analyzed
-  return SHELL_WRITERS.test(seg.raw) || REDIRECT.test(seg.raw);
+  return SHELL_WRITERS.has(String(seg.program).toLowerCase()) || redirectsToFile(seg.raw);
 }
 
 export function isBranchDelete(seg) {

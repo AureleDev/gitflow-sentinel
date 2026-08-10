@@ -62,21 +62,20 @@ flowchart TD
   J --> K["Push -u; PR to integration"]
   K --> L["Stop hook: closure check"]
   L --> M{"Clean branch, OPEN PR to integration?"}
-  M -- "No" --> N["Incomplete closure: report missing push/PR"]
+  M -- "No" --> N["Advisory: report missing push/PR, then allow stop"]
   M -- "Yes" --> O["Ask: merge now or keep open"]
 ```
 
 ## Version model
 
-- `.gitflow-sentinel/VERSION` is the installed runtime version. The doctor warns
-  when an installed runtime drifts from the skill's version.
+- `.gitflow-sentinel/VERSION` is aligned with the package version. The
+  SessionStart hook compares it with an available installed CLI and warns on
+  drift; the doctor performs the same comparison during an explicit audit.
 - Bump it when the engine, hooks, or wiring change in a way repos should detect,
   then re-run install to upgrade managed files in place (advisory docs are left
   to the agent).
-- The hardening release (tri-state knobs, `--no-verify`/`core.hooksPath`
-  integrity rules, force-push/tag/release governance, non-overridable secrets
-  guard) is a breaking policy change, so the runtime moves to a major version:
-  **2.0.0**.
+- Historical 2.x runtimes remain migration inputs. V3 aligns package and runtime
+  versions so a project no longer exposes two unrelated current version lines.
 
 ## Idempotence
 

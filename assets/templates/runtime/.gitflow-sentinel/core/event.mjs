@@ -3,6 +3,8 @@
 // policy engine understands. Codex and Claude Code use slightly different field
 // names and nesting; we read every known location so a single hook script works
 // on both without per-platform branches.
+import path from "node:path";
+import { existsSync, realpathSync } from "node:fs";
 
 export function parseInput(raw) {
   try {
@@ -66,6 +68,51 @@ export function commands(event) {
   // The same command is reachable at several payload paths; dedupe so a guard
   // message is not printed once per alias.
   return [...new Set(out.map((c) => c.trim()).filter(Boolean))];
+}
+
+const FILE_PATH_KEYS = ["file_path", "filePath", "path", "notebook_path", "notebookPath"];
+
+function collectFilePaths(node, out, depth = 0) {
+  if (!node || typeof node !== "object" || depth > 6) return;
+  for (const key of FILE_PATH_KEYS) {
+    if (typeof node[key] === "string" && node[key].trim()) out.push(node[key].trim());
+  }
+  for (const key of ["tool_input", "input", "parameters", "arguments"]) {
+    collectFilePaths(node[key], out, depth + 1);
+  }
+  const nests = node?.tool_input?.tool_uses ?? node?.input?.tool_uses ?? node?.tool_uses ?? [];
+  if (Array.isArray(nests)) {
+    for (const nested of nests) collectFilePaths(nested, out, depth + 1);
+  }
+}
+
+export function filePaths(event) {
+  const out = [];
+  collectFilePaths(event, out);
+  return [...new Set(out)];
+}
+
+function canonicalPath(value) {
+  let current = path.resolve(value);
+  const suffix = [];
+  while (!existsSync(current)) {
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    suffix.unshift(path.basename(current));
+    current = parent;
+  }
+  try { current = realpathSync.native(current); } catch { /* best-effort path identity */ }
+  return path.resolve(current, ...suffix);
+}
+
+export function filePathsTouchRoot(targets, workdir, root) {
+  if (!root || !targets?.length) return null;
+  const projectRoot = canonicalPath(root);
+  return targets.some((target) => {
+    const resolved = canonicalPath(path.resolve(workdir, target));
+    const relative = path.relative(projectRoot, resolved);
+    return relative === "" || (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative));
+  });
 }
 
 export function cwd(event) {

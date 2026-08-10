@@ -1,4 +1,14 @@
 import { groupDescription } from "./human-output.mjs";
+import { PROFILE_MODULES } from "./config.mjs";
+
+export function withLocalGitPolicy(profile = "standard") {
+  const modules = PROFILE_MODULES[profile];
+  if (!modules?.length) throw new Error(`Profile ${profile} cannot be extended with local Git policy.`);
+  return {
+    profile: "custom",
+    modules: [...new Set([...modules, "git-policy"])],
+  };
+}
 
 export async function collectSetupApprovals(plan, ask) {
   if (!plan.actions.length) {

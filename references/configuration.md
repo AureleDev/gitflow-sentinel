@@ -68,6 +68,11 @@ Before a command can be copied into generated CI, run the two-step
 `gitflow-sentinel check` preview and approval flow. Evidence becomes invalid as
 soon as the commit, branch or worktree changes.
 
+Interactive `setup` asks whether to add the optional `git-policy` module when a
+new standard configuration is created. The question states that these local
+hooks are bypassable early feedback; selecting them records an explicit custom
+module set rather than changing the meaning of `standard` silently.
+
 ## Project decisions
 
 `project.visibility` may be `private`, `public` or `internal`. Creating a remote

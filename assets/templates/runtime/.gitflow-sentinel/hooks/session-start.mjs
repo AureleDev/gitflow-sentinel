@@ -4,8 +4,29 @@
 // a session so the very first action already respects the branch model. Never
 // blocks. Reads the project config so the guidance matches the team's policy.
 import path from "node:path";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { loadConfig, isProtected, isShortBranch } from "../core/config.mjs";
 import { readState } from "../core/git.mjs";
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+
+function currentCliVersion() {
+  const options = { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], timeout: 2_000 };
+  try {
+    return execFileSync("gitflow-sentinel", ["--version"], options).trim();
+  } catch {
+    if (process.platform !== "win32") return "";
+    try {
+      return execFileSync(process.env.ComSpec || "cmd.exe", [
+        "/d", "/s", "/c", "gitflow-sentinel.cmd --version",
+      ], options).trim();
+    } catch {
+      return "";
+    }
+  }
+}
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
   console.log("gitflow-sentinel SessionStart hook: orients the agent at session start. Not meant to be run by hand.");
@@ -26,6 +47,13 @@ const { branch, integrationBranch: integration, stableBranch: stable, legacyBran
   branch: state.branch,
   ...config,
 };
+
+let installedVersion = "";
+try { installedVersion = readFileSync(path.join(HERE, "..", "VERSION"), "utf8").trim(); } catch { /* advisory only */ }
+const cliVersion = currentCliVersion();
+if (installedVersion && cliVersion && installedVersion !== cliVersion) {
+  console.error(`gitflow-sentinel: runtime ${installedVersion} differs from installed CLI ${cliVersion}; run gitflow-sentinel update.`);
+}
 
 console.error(`gitflow-sentinel: branch ${state.branch}; worktree ${state.dirty ? "dirty" : "clean"}.`);
 

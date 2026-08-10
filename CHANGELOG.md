@@ -67,6 +67,17 @@ All notable changes to this project are documented here. The format is based on
 
 ### Fixed
 
+- Approved npm quality commands now execute through Windows `.cmd` shims
+  without enabling a general shell or allowing argument metacharacter injection.
+- Direct-edit policy now evaluates resolved target paths and ignores writes
+  outside the current worktree instead of blocking solely on the tool name.
+- Direct-edit messages no longer advertise an unreachable override channel.
+- Shell-write detection uses parsed command positions, exempts `/dev/null`,
+  `nul` and `$null`, and no longer treats writer names inside arguments as writes.
+- Claude Code hook wiring now matches every tool so a newly added shell cannot
+  silently bypass the guard.
+- The Stop hook is advisory and cannot trap an agent in an unbounded loop.
+- Runtime and package versions are aligned, with SessionStart drift reporting.
 - A root `package.json` without a lockfile now defaults to npm, while an
   explicit `packageManager` field remains authoritative; npm Dependabot is no
   longer omitted from such projects.

@@ -81,7 +81,7 @@ export function parseProjectArgs(argv, { profile = true, output = true, json = t
 
 export function createPlanFor(root, profile, modules = [], options = {}) {
   const snapshot = inspectProject(root, { remote: Boolean(options.remote) });
-  const loaded = loadDesiredState(root, snapshot, { profile, modules, ...options });
+  const loaded = loadDesiredState(root, snapshot, { ...options, profile, modules });
   return { snapshot, loaded, plan: buildPlan(root, snapshot, loaded.config, loaded) };
 }
 

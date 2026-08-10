@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
   chmodSync,
   existsSync,
@@ -17,6 +17,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { inspectProject } from "../scripts/core/inspect-project.mjs";
+import { createPlanFor } from "../scripts/core/command-helpers.mjs";
 import { loadDesiredState, validateDesiredState } from "../scripts/core/config.mjs";
 import { buildPlan } from "../scripts/core/planner.mjs";
 import {
@@ -39,11 +40,19 @@ import {
   rulesetMatches,
 } from "../scripts/core/providers/github.mjs";
 import { planAiInstall, applyAiInstall } from "../scripts/core/ai-install.mjs";
-import { collectSetupApprovals } from "../scripts/core/setup-flow.mjs";
+import { collectSetupApprovals, withLocalGitPolicy } from "../scripts/core/setup-flow.mjs";
 import { renderSetupCompletion, renderSetupSummary } from "../scripts/core/human-output.mjs";
 import { compactPendingActions, compactPlan, compactSnapshot } from "../scripts/core/public-output.mjs";
 import { mergeManagedBlock } from "../scripts/core/managed-block.mjs";
-import { analyze } from "../assets/templates/runtime/.gitflow-sentinel/core/parser.mjs";
+import {
+  analyze,
+  isDirectEditTool,
+  isShellFileWrite,
+} from "../assets/templates/runtime/.gitflow-sentinel/core/parser.mjs";
+import {
+  filePaths,
+  filePathsTouchRoot,
+} from "../assets/templates/runtime/.gitflow-sentinel/core/event.mjs";
 import { DEFAULTS, validateConfig } from "../assets/templates/runtime/.gitflow-sentinel/core/config.mjs";
 import { evaluate, partition } from "../assets/templates/runtime/.gitflow-sentinel/core/policy.mjs";
 import { run } from "../scripts/lib.mjs";
@@ -99,6 +108,81 @@ test("failed subprocess diagnostics redact secret-like output", () => {
   assert.equal(result.message.includes(secret), false);
   assert.equal(result.stderr.includes("<redacted-secret>"), true);
   assert.equal(JSON.stringify(result.error).includes(secret), false);
+});
+
+test("direct-edit policy uses repository target paths and cannot be self-overridden", () => {
+  const root = path.resolve("policy-target-root");
+  const event = {
+    tool_name: "Write",
+    tool_input: { file_path: path.join(root, "src", "inside.js") },
+    tool_uses: [
+      { parameters: { notebook_path: path.join(root, "notes.ipynb") } },
+    ],
+  };
+  assert.deepEqual(filePaths(event), [
+    path.join(root, "src", "inside.js"),
+    path.join(root, "notes.ipynb"),
+  ]);
+  assert.equal(filePathsTouchRoot(filePaths(event), root, root), true);
+  assert.equal(filePathsTouchRoot([path.resolve(root, "..", "agent-memory", "note.md")], root, root), false);
+  assert.equal(filePathsTouchRoot([], root, root), null);
+  assert.equal(isDirectEditTool("functions.apply_patch"), true);
+
+  const state = {
+    isRepo: true,
+    branch: "main",
+    branches: new Set(["main"]),
+    stagedFiles: [],
+    remotes: "origin",
+    upstream: "origin/main",
+  };
+  const decisions = (directEditInWorktree, hasOverride = false) => partition(evaluate({
+    config: { ...DEFAULTS, stableBranch: "main", integrationBranch: "main", protectedBranches: ["main"] },
+    state,
+    toolName: "Write",
+    directEditInWorktree,
+    hasOverride,
+    segments: [],
+  })).blocks.map((item) => item.code);
+  assert.equal(decisions(true).includes("DIRECT_EDIT_PROTECTED"), true);
+  assert.equal(decisions(true, true).includes("DIRECT_EDIT_PROTECTED"), true);
+  assert.equal(decisions(false).includes("DIRECT_EDIT_PROTECTED"), false);
+});
+
+test("shell-write detection distinguishes commands, quoted text, and null sinks", () => {
+  const writes = (command) => analyze(command).some((segment) => isShellFileWrite(segment));
+  for (const command of [
+    "echo ok > /dev/null",
+    "echo ok 2>/dev/null",
+    "Write-Output ok > $null",
+    "echo ok > nul",
+    "printf 'rm file'",
+    "echo '>'",
+    "echo rm",
+  ]) assert.equal(writes(command), false, command);
+  for (const command of [
+    "echo ok > output.txt",
+    "echo ok 2>>errors.log",
+    "rm file.txt",
+    "Set-Content file.txt value",
+    "tee output.txt",
+  ]) assert.equal(writes(command), true, command);
+});
+
+test("interactive standard setup can explicitly add local Git policy", () => {
+  const selected = withLocalGitPolicy("standard");
+  assert.equal(selected.profile, "custom");
+  assert.equal(selected.modules.includes("git-policy"), true);
+  assert.equal(new Set(selected.modules).size, selected.modules.length);
+  const root = tempProject("sentinel-local-policy-");
+  try {
+    const { plan } = createPlanFor(root, selected.profile, selected.modules, { profile: "standard", modules: [] });
+    assert.equal(plan.desiredState.profile, "custom");
+    assert.equal(plan.desiredState.modules.enabled.includes("git-policy"), true);
+    assert.equal(plan.actions.some((action) => action.module === "git-policy"), true);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 function makePlanFixtureConfig() {
@@ -504,6 +588,62 @@ test("setup plan-only is a one-command read-only greenfield preview", (t) => {
   assert.match(output, /Plan : \d+ action\(s\)/);
   assert.match(output, /Aucun changement appliqué/);
   assert.deepEqual(readdirSync(root), []);
+});
+
+test("runtime hooks cover every Claude tool, allow short-branch push, and never trap Stop", (t) => {
+  const claudeSettings = JSON.parse(readFileSync(
+    path.resolve("assets/templates/claude/.claude/settings.json"),
+    "utf8",
+  ));
+  assert.equal(claudeSettings.hooks.PreToolUse[0].matcher, "*");
+  const packageVersion = JSON.parse(readFileSync(path.resolve("package.json"), "utf8")).version;
+  const runtimeVersion = readFileSync(
+    path.resolve("assets/templates/runtime/.gitflow-sentinel/VERSION"),
+    "utf8",
+  ).trim();
+  assert.equal(runtimeVersion, packageVersion);
+
+  const root = tempProject("sentinel-hook-cycle-");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  git(root, "init", "-b", "feat/review-fix");
+  git(root, "config", "user.email", "sentinel@example.invalid");
+  git(root, "config", "user.name", "Sentinel Test");
+  writeFileSync(path.join(root, "tracked.txt"), "fixture\n");
+  git(root, "add", "tracked.txt");
+  git(root, "commit", "-m", "test: create hook fixture");
+  const sha = git(root, "rev-parse", "HEAD");
+
+  const nativeHook = path.resolve("assets/templates/runtime/.gitflow-sentinel/githooks/native.mjs");
+  const push = spawnSync(process.execPath, [nativeHook, "pre-push"], {
+    cwd: root,
+    encoding: "utf8",
+    input: `refs/heads/feat/review-fix ${sha} refs/heads/feat/review-fix ${"0".repeat(40)}\n`,
+  });
+  assert.equal(push.status, 0, push.stderr);
+
+  const stopHook = path.resolve("assets/templates/runtime/.gitflow-sentinel/hooks/cycle-reminder.mjs");
+  const stop = spawnSync(process.execPath, [stopHook], { cwd: root, encoding: "utf8" });
+  assert.equal(stop.status, 0, stop.stderr);
+  assert.match(stop.stderr, /advisory and will not trap/i);
+
+  git(root, "branch", "main");
+  git(root, "switch", "main");
+  const guard = path.resolve("assets/templates/runtime/.gitflow-sentinel/hooks/guard.mjs");
+  const guardCall = (file) => spawnSync(process.execPath, [guard], {
+    cwd: root,
+    encoding: "utf8",
+    input: JSON.stringify({
+      hook_event_name: "PreToolUse",
+      tool_name: "Write",
+      cwd: root,
+      tool_input: { file_path: file },
+    }),
+  });
+  const outside = guardCall(path.resolve(root, "..", "agent-memory", "note.md"));
+  assert.equal(outside.status, 0, outside.stderr);
+  const inside = guardCall(path.join(root, "inside.txt"));
+  assert.equal(inside.status, 2, inside.stderr);
+  assert.match(inside.stderr, /DIRECT_EDIT_PROTECTED/);
 });
 
 test("quality evidence requires approval, stores no output, and is bound to repository state", (t) => {

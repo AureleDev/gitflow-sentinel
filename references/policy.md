@@ -31,7 +31,7 @@ code 2; warns print only.
 |------|-------|---------|
 | `NO_VERIFY` | block (non-overridable) | `git commit/push --no-verify` or `-n` — disables every native hook at once |
 | `HOOKSPATH_TAMPER` | block (non-overridable) | `git config core.hooksPath …` or `git -c core.hooksPath=…` — neutralizes the native layer |
-| `DIRECT_EDIT_PROTECTED` | block | apply_patch/edit/write tool used on a protected branch |
+| `DIRECT_EDIT_PROTECTED` | block | apply_patch/edit/write tool targets this repository on a protected branch |
 | `MUTATION_PROTECTED` | block | git add/commit/merge/reset/… or shell write on a protected branch |
 | `CREATE_DIRTY` | block | branch creation with a dirty worktree |
 | `SHORT_BRANCH_BASE` | block | short branch created from a non-integration branch |
@@ -57,18 +57,23 @@ code 2; warns print only.
 ## Override semantics
 
 `overrideMarker` (default `GITFLOW_OVERRIDE=explicit`) in the **command text**
-(e.g. a trailing `# GITFLOW_OVERRIDE=explicit: reason`) bypasses the matching
-**block** for that single action; the native layer reads it from the
+bypasses an eligible command block for that single action; the native layer reads it from the
 `GITFLOW_OVERRIDE` environment variable. It is matched only in the command — not
 in arbitrary file or diff content — so a file that merely contains the marker
 string cannot switch the guard off (self-poisoning). It does not silence
 warnings, and it is intentionally visible so the exception is recorded. Use it
 only after a human approves the specific operation.
 
-Three blocks **ignore the marker on purpose**, because honoring it would let an
-agent switch off the safety system itself: `SECRET_STAGED` (a secret in history
-is too costly to ever wave through), `NO_VERIFY` (it disables all native hooks),
-and `HOOKSPATH_TAMPER` (it repoints `core.hooksPath` away from the guardrails).
+Direct-edit tool payloads do not have a portable, auditable override channel.
+Their marker is therefore ignored: on a protected branch, edit the repository
+from a short branch. A direct edit whose resolved target is outside the current
+worktree is outside this repository policy and is not blocked.
+
+Four blocks **ignore the marker on purpose**: `DIRECT_EDIT_PROTECTED` has no
+portable override channel; `SECRET_STAGED` would put a secret in history;
+`NO_VERIFY` disables all native hooks; and `HOOKSPATH_TAMPER` repoints
+`core.hooksPath` away from the guardrails. These remain local defense-in-depth
+decisions; required CI and remote rules are the shared authority.
 
 ## Threat model
 
@@ -95,3 +100,7 @@ contract holds after any change to the engine or config:
 - staged `.env` or secret pattern on commit → block, **never overridable**;
 - tag/`gh release` → warn or block per `tagProtection`; commit on detached HEAD → warn;
 - non-Conventional `-m` message → warn or block per `conventionalCommits`; `git worktree` → warn.
+- direct edits outside the current worktree → allow; missing/inside targets on a protected branch → block;
+- `/dev/null`, `nul` and `$null` redirections → allow, while real file redirections → block on protected branches;
+- pushing a short branch to its own remote branch → allow so an open PR can be completed;
+- the Stop hook reports incomplete closure but never traps the agent in an unbounded loop.

@@ -9,9 +9,20 @@ import { promisify } from "node:util";
 import path from "node:path";
 import { SKILL_ROOT, TEMPLATE_ROOT, listFiles, run, isFailure, nextValue, resolveProjectRoot } from "../../scripts/lib.mjs";
 import { DEFAULTS } from "../../assets/templates/runtime/.gitflow-sentinel/core/config.mjs";
-import { analyze } from "../../assets/templates/runtime/.gitflow-sentinel/core/parser.mjs";
+import {
+  analyze,
+  isDirectEditTool,
+  isShellFileWrite,
+} from "../../assets/templates/runtime/.gitflow-sentinel/core/parser.mjs";
 import { evaluate, partition } from "../../assets/templates/runtime/.gitflow-sentinel/core/policy.mjs";
-import { parseInput, toolName, commands, cwd as eventCwd } from "../../assets/templates/runtime/.gitflow-sentinel/core/event.mjs";
+import {
+  parseInput,
+  toolName,
+  commands,
+  filePaths,
+  filePathsTouchRoot,
+  cwd as eventCwd,
+} from "../../assets/templates/runtime/.gitflow-sentinel/core/event.mjs";
 
 const execFileAsync = promisify(execFile);
 
@@ -104,6 +115,44 @@ expectNoBlock("commit on feat allowed", { config, state: st({ branch: "feat/x" }
 expectNoBlock("override bypasses block", { config, state: st({ branch: "dev" }), segments: seg("git commit -m x # GITFLOW_OVERRIDE=explicit: r"), hasOverride: true });
 expectWarn("non-conventional message warns", { config, state: st({ branch: "feat/x" }), segments: seg("git commit -m 'stuff'") }, "COMMIT_FORMAT");
 expectWarn("worktree warns", { config, state: st({ branch: "feat/x" }), segments: seg("git worktree add ../wt feat/x") }, "WORKTREE");
+expectBlock("inside direct edit on protected branch blocked", {
+  config,
+  state: st({ branch: "main" }),
+  toolName: "Write",
+  directEditInWorktree: true,
+  segments: [],
+}, "DIRECT_EDIT_PROTECTED");
+expectBlock("direct edit cannot self-override", {
+  config,
+  state: st({ branch: "main" }),
+  toolName: "Write",
+  directEditInWorktree: true,
+  hasOverride: true,
+  segments: [],
+}, "DIRECT_EDIT_PROTECTED");
+expectNoBlock("outside direct edit is outside repository policy", {
+  config,
+  state: st({ branch: "main" }),
+  toolName: "Write",
+  directEditInWorktree: false,
+  segments: [],
+});
+expectNoBlock("short branch push to its own remote branch allowed", {
+  config,
+  state: st({ branch: "feat/x", upstream: "origin/feat/x" }),
+  segments: seg("git push origin feat/x"),
+});
+for (const command of ["echo ok > /dev/null", "echo ok 2>/dev/null", "Write-Output ok > $null", "echo rm"]) {
+  analyze(command).some(isShellFileWrite)
+    ? bad(`null sink/read-only text allowed: ${command}`, "unexpected shell write")
+    : ok(`null sink/read-only text allowed: ${command}`);
+}
+for (const command of ["echo ok > output.txt", "rm file.txt", "Set-Content file.txt value"]) {
+  analyze(command).some(isShellFileWrite)
+    ? ok(`real shell write detected: ${command}`)
+    : bad(`real shell write detected: ${command}`, "write was not detected");
+}
+isDirectEditTool("functions.apply_patch") ? ok("direct edit tool recognized") : bad("direct edit tool recognized", "tool was missed");
 
 console.log("\n2b) Event payload parsing (Codex vs Claude Code)");
 // Exercises core/event.mjs directly instead of only analyze()/evaluate() — the
@@ -115,11 +164,15 @@ function payloadCase(label, payload, expect) {
   const event = parseInput(JSON.stringify(payload));
   const name = toolName(event);
   const cmds = commands(event);
+  const paths = filePaths(event);
   const wd = eventCwd(event);
   const okName = expect.tool === undefined || name === expect.tool;
   const okCmd = expect.cmd === undefined || cmds.includes(expect.cmd);
   const okCwd = expect.cwd === undefined || wd === expect.cwd;
-  (okName && okCmd && okCwd) ? ok(label) : bad(label, `tool=${name} cmds=${JSON.stringify(cmds)} cwd=${wd}`);
+  const okPath = expect.path === undefined || paths.includes(expect.path);
+  (okName && okCmd && okCwd && okPath)
+    ? ok(label)
+    : bad(label, `tool=${name} cmds=${JSON.stringify(cmds)} paths=${JSON.stringify(paths)} cwd=${wd}`);
 }
 
 payloadCase("Claude Code Bash tool_input.command shape", {
@@ -142,7 +195,15 @@ payloadCase("Codex nested tool_uses batch shape", {
 
 payloadCase("Codex apply_patch tool name recognized", {
   recipient_name: "functions.apply_patch",
-}, { tool: "functions.apply_patch" });
+  parameters: { path: "/tmp/proj/file.txt" },
+}, { tool: "functions.apply_patch", path: "/tmp/proj/file.txt" });
+
+filePathsTouchRoot(["/tmp/proj/file.txt"], "/tmp/proj", "/tmp/proj")
+  ? ok("direct edit target resolves inside worktree")
+  : bad("direct edit target resolves inside worktree", "inside target was missed");
+filePathsTouchRoot(["/tmp/agent-memory.txt"], "/tmp/proj", "/tmp/proj") === false
+  ? ok("direct edit target resolves outside worktree")
+  : bad("direct edit target resolves outside worktree", "outside target was treated as inside");
 
 console.log("\n3) Hardened-rule scenarios");
 const feat = (over) => st({ branch: "feat/x", upstream: "origin/feat/x", ...over });

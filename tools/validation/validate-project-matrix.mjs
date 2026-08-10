@@ -16,9 +16,12 @@ import {
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { containsSecretMaterial } from "../../scripts/core/security.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const temp = mkdtempSync(path.join(os.tmpdir(), "gitflow-sentinel-project-matrix-"));
+const parsedArgs = parseArgs(process.argv.slice(2));
+mkdirSync(parsedArgs.workspace, { recursive: true });
+const temp = mkdtempSync(path.join(parsedArgs.workspace, "gitflow-sentinel-project-matrix-"));
 const consumer = path.join(temp, "consumer");
 const excludedDirectoryNames = new Set([
   ".git",
@@ -37,6 +40,7 @@ const excludedDirectoryNames = new Set([
 function parseArgs(argv) {
   const sources = [];
   let profile = "standard";
+  let workspace = os.tmpdir();
   for (let i = 0; i < argv.length; i += 1) {
     const value = argv[i];
     if (value === "--source") {
@@ -47,6 +51,10 @@ function parseArgs(argv) {
     } else if (value === "--profile") {
       profile = argv[i + 1];
       i += 1;
+    } else if (value === "--workspace") {
+      workspace = path.resolve(argv[i + 1] || "");
+      if (!argv[i + 1]) throw new Error("--workspace needs a directory.");
+      i += 1;
     } else {
       throw new Error(`Unknown argument: ${value}`);
     }
@@ -55,8 +63,12 @@ function parseArgs(argv) {
   if (!["minimal", "standard", "hardened"].includes(profile)) throw new Error("--profile must be minimal, standard, or hardened.");
   for (const source of sources) {
     if (!existsSync(source) || !statSync(source).isDirectory()) throw new Error(`Source is not a directory: ${source}`);
+    const relative = path.relative(source, workspace);
+    if (relative === "" || (relative !== ".." && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))) {
+      throw new Error(`Workspace must stay outside source project: ${source}`);
+    }
   }
-  return { sources, profile };
+  return { sources, profile, workspace };
 }
 
 function runNpm(args, cwd) {
@@ -128,11 +140,25 @@ function shouldCopy(sourceRoot, candidate) {
   if (parts.some((part) => excludedDirectoryNames.has(part))) return false;
   if ([".agent", ".agents"].includes(parts[0]) && parts[1] === "skills") return false;
   if (parts[0] === ".claude" && ["skills", "worktrees"].includes(parts[1])) return false;
+  if (parts[0] === ".gitflow-sentinel" && ["logs", "backups"].includes(parts[1])) return false;
+  if (existsSync(candidate) && lstatSync(candidate).isFile()) {
+    const name = path.basename(candidate).toLowerCase();
+    const safeEnvExample = [".env.example", ".env.sample"].includes(name);
+    if ((!safeEnvExample && /^\.env(?:\.|$)/.test(name)) ||
+        [".npmrc", ".pypirc", ".netrc", "id_rsa", "id_ed25519"].includes(name) ||
+        /\.(?:key|pem|p12|pfx)$/i.test(name)) return false;
+    try {
+      const stat = statSync(candidate);
+      if (stat.size <= 2 * 1024 * 1024 && containsSecretMaterial(readFileSync(candidate, "utf8"))) return false;
+    } catch {
+      return false;
+    }
+  }
   return true;
 }
 
 try {
-  const { sources, profile } = parseArgs(process.argv.slice(2));
+  const { sources, profile } = parsedArgs;
   mkdirSync(consumer);
   const packedResult = JSON.parse(runNpm(["pack", root, "--json", "--pack-destination", temp], root));
   const packed = Array.isArray(packedResult) ? packedResult : Object.values(packedResult);

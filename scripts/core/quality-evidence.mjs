@@ -45,6 +45,51 @@ function currentState(root) {
   };
 }
 
+function windowsBatchFile(command, cwd) {
+  if (process.platform !== "win32") return "";
+
+  const explicit = path.isAbsolute(command) || /[\\/]/.test(command);
+  const candidates = explicit
+    ? [path.resolve(cwd, command)]
+    : (() => {
+        const located = spawnSync("where.exe", [command], {
+          cwd,
+          encoding: "utf8",
+          shell: false,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        if (located.error || located.status !== 0) return [];
+        return String(located.stdout || "").split(/\r?\n/).filter(Boolean);
+      })();
+
+  for (const candidate of candidates) {
+    const resolved = path.resolve(candidate.replace(/^"|"$/g, ""));
+    const extension = path.extname(resolved).toLowerCase();
+    if (![".com", ".exe", ".bat", ".cmd"].includes(extension) || !existsSync(resolved)) continue;
+    return extension === ".bat" || extension === ".cmd" ? resolved : "";
+  }
+  return "";
+}
+
+function runApprovedCommand(argv, options) {
+  const batchFile = windowsBatchFile(argv[0], options.cwd);
+  if (!batchFile) return spawnSync(argv[0], argv.slice(1), options);
+
+  const values = [batchFile, ...argv.slice(1)].map(String);
+  if (values.some((value) => /["%\r\n\0]/.test(value))) {
+    throw new Error("Windows command-shim paths and arguments cannot contain quotes, percent signs, or control characters.");
+  }
+  const commandLine = `"${values.map((value) => `"${value}"`).join(" ")}"`;
+
+  return spawnSync(process.env.ComSpec || "cmd.exe", [
+    "/d",
+    "/s",
+    "/v:off",
+    "/c",
+    commandLine,
+  ], { ...options, windowsVerbatimArguments: true });
+}
+
 export function createQualityCheck(root, argv) {
   const command = (argv || []).map(String);
   if (!command.length || !command[0]) throw new Error("A command is required after --.");
@@ -72,7 +117,7 @@ export function executeQualityCheck(check, {
   if (current.hash !== check.hash) throw new Error("Quality check is stale: the repository state or command changed.");
 
   const started = Date.now();
-  const result = spawnSync(check.argv[0], check.argv.slice(1), {
+  const result = runApprovedCommand(check.argv, {
     cwd: check.root,
     encoding: "utf8",
     shell: false,

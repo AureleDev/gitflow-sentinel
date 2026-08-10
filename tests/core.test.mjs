@@ -536,6 +536,21 @@ test("quality evidence requires approval, stores no output, and is bound to repo
   assert.equal(persisted.includes(secretOutput), false);
 });
 
+test("quality evidence runs an approved Windows command shim without shell injection", {
+  skip: process.platform !== "win32",
+}, (t) => {
+  const root = tempProject("sentinel quality shim ");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  git(root, "init", "-b", "main");
+  writeFileSync(path.join(root, "package.json"), "{\"name\":\"quality-shim-fixture\"}\n");
+  const shim = path.join(root, "quality-check.cmd");
+  writeFileSync(shim, "@echo off\r\nif not \"%~1\"==\"safe&literal\" exit /b 9\r\nexit /b 0\r\n");
+
+  const check = createQualityCheck(root, [path.basename(shim, ".cmd"), "safe&literal"]);
+  const evidence = executeQualityCheck(check, { approval: check.hash });
+  assert.equal(evidence.exitCode, 0);
+});
+
 test("plan apply is idempotent and rollback restores prior local state", (t) => {
   const root = tempProject();
   t.after(() => rmSync(root, { recursive: true, force: true }));

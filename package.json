@@ -12,6 +12,14 @@
     "type": "git",
     "url": "git+https://github.com/AureleDev/gitflow-sentinel.git"
   },
+  "homepage": "https://github.com/AureleDev/gitflow-sentinel#readme",
+  "bugs": {
+    "url": "https://github.com/AureleDev/gitflow-sentinel/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
+  },
   "keywords": [
     "git",
     "github",

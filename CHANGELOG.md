@@ -52,6 +52,8 @@ All notable changes to this project are documented here. The format is based on
 
 - Version nomenclature now starts at `0.0.3-alpha.1` to communicate that the
   product is experimental and has not reached its first stable release.
+- Prerelease publication defaults to the public npm `next` dist-tag, matching
+  the documented one-command installation path.
 - Internal validation programs now live under `tools/validation/`, while dated
   execution evidence lives under repository-only `docs/validation/`.
 - The npm package now includes an explicit runtime surface and excludes tests,

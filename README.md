@@ -31,18 +31,17 @@ sensibles demandent une confirmation dédiée.
 
 Node.js 18 ou supérieur est requis.
 
-La version alpha n'est pas encore publiée sur npm. Depuis cette copie locale,
-une seule commande installe le CLI global et le skill pour Codex, Claude Code
-et OpenCode :
-
-```bash
-npm run bootstrap
-```
-
-Après la publication npm, cette commande deviendra simplement :
+Une seule commande npm installe le CLI global et le skill pour Codex, Claude
+Code et OpenCode :
 
 ```bash
 npx --yes gitflow-sentinel@next bootstrap
+```
+
+Depuis une copie locale de développement du dépôt, l'équivalent est :
+
+```bash
+npm run bootstrap
 ```
 
 `bootstrap` est une action explicite : il installe le CLI global sans exécuter

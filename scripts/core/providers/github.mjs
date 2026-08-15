@@ -1,6 +1,7 @@
 import { run, isFailure } from "../../lib.mjs";
 
 export const RULESET_NAME = "gitflow-sentinel";
+export const DEFAULT_REMOTE_TIMEOUT_MS = 15_000;
 
 export function githubRepoSlug(remote) {
   const match = String(remote).match(/github\.com[/:]([^/\s]+)\/([^/\s]+?)(?:\.git)?$/i);
@@ -81,7 +82,7 @@ export function rulesetMatches(current, branches, reviewers) {
   return expected.length > 0 && expected.every((branch) => included.has(branch));
 }
 
-export function listRulesets(root, slug, { timeoutMs = 5_000 } = {}) {
+export function listRulesets(root, slug, { timeoutMs = DEFAULT_REMOTE_TIMEOUT_MS } = {}) {
   const result = run("gh", ["api", "-H", "Accept: application/vnd.github+json", `repos/${slug}/rulesets`], root, { timeout: timeoutMs });
   if (isFailure(result)) return result;
   const parsed = parseJsonResult(result, []);
@@ -90,7 +91,7 @@ export function listRulesets(root, slug, { timeoutMs = 5_000 } = {}) {
     : { error: new Error("invalid JSON"), message: "GitHub returned invalid ruleset JSON." };
 }
 
-export function readRuleset(root, slug, id, { timeoutMs = 5_000 } = {}) {
+export function readRuleset(root, slug, id, { timeoutMs = DEFAULT_REMOTE_TIMEOUT_MS } = {}) {
   const result = run("gh", ["api", "-H", "Accept: application/vnd.github+json", `repos/${slug}/rulesets/${id}`], root, { timeout: timeoutMs });
   if (isFailure(result)) return result;
   const parsed = parseJsonResult(result, null);
@@ -129,7 +130,7 @@ function inspectRuleset(root, slug, timeoutMs) {
   return normalizeRuleset(detail);
 }
 
-export function inspectGitHubProvider(root, remote, { timeoutMs = 5_000 } = {}) {
+export function inspectGitHubProvider(root, remote, { timeoutMs = DEFAULT_REMOTE_TIMEOUT_MS } = {}) {
   const slug = githubRepoSlug(remote);
   const version = run("gh", ["--version"], root, { timeout: timeoutMs });
   const available = !isFailure(version);

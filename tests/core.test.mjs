@@ -35,7 +35,9 @@ import {
   validQualityEvidence,
 } from "../scripts/core/quality-evidence.mjs";
 import {
+  DEFAULT_REMOTE_TIMEOUT_MS,
   buildRulesetPayload,
+  githubRepoSlug,
   normalizeRuleset,
   rulesetMatches,
 } from "../scripts/core/providers/github.mjs";
@@ -252,6 +254,13 @@ test("GitHub ruleset diff owns only its dedicated policy", () => {
   });
   assert.equal(rulesetMatches(normalized, ["main", "dev"], 2), true);
   assert.equal(rulesetMatches(normalized, ["main", "dev"], 1), false);
+});
+
+test("GitHub inspection supports SSH remotes and a bounded slow-network timeout", () => {
+  assert.equal(githubRepoSlug("git@github.com:AureleDev/gitflow-sentinel.git"), "AureleDev/gitflow-sentinel");
+  assert.equal(githubRepoSlug("ssh://git@github.com/AureleDev/gitflow-sentinel.git"), "AureleDev/gitflow-sentinel");
+  assert.equal(githubRepoSlug("https://github.com/AureleDev/gitflow-sentinel.git"), "AureleDev/gitflow-sentinel");
+  assert.equal(DEFAULT_REMOTE_TIMEOUT_MS, 15_000);
 });
 
 test("planner never mutates an unreadable GitHub ruleset", (t) => {
@@ -665,9 +674,12 @@ test("quality evidence requires approval, stores no output, and is bound to repo
 
   const snapshot = inspectProject(root);
   assert.equal(validQualityEvidence(root, snapshot, [check.command])[check.command]?.hash, evidence.hash);
-  writeFileSync(path.join(root, "changed.txt"), "drift\n");
+  const approvedPackage = readFileSync(path.join(root, "package.json"), "utf8");
+  writeFileSync(path.join(root, "package.json"), "{\"name\":\"changed-quality-fixture\"}\n");
   const changed = inspectProject(root);
   assert.equal(validQualityEvidence(root, changed, [check.command])[check.command], null);
+  assert.throws(() => executeQualityCheck(check, { approval: check.hash }), /stale/i);
+  writeFileSync(path.join(root, "package.json"), approvedPackage);
 
   const evidenceRoot = path.join(git(root, "rev-parse", "--absolute-git-dir"), "sentinel", "quality-evidence");
   const persisted = readdirSync(evidenceRoot)
@@ -733,6 +745,18 @@ test("stale plans abort and automatically undo earlier local actions", (t) => {
   writeFileSync(target, "drift\n");
   assert.throws(() => applyPlan(plan, approvals(plan)), /Plan is stale/);
   assert.equal(readFileSync(target, "utf8"), "drift\n");
+});
+
+test("stale plans detect byte changes inside an already dirty unplanned file", (t) => {
+  const root = tempProject();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  git(root, "init", "-b", "main");
+  const notes = path.join(root, "notes.txt");
+  writeFileSync(notes, "first draft\n");
+  const { plan } = makePlan(root, "minimal");
+  writeFileSync(notes, "second draft\n");
+  assert.throws(() => applyPlan(plan, approvals(plan)), /working tree changed/i);
+  assert.equal(readFileSync(notes, "utf8"), "second draft\n");
 });
 
 test("transaction lock prevents concurrent apply and stale locks are recoverable", (t) => {

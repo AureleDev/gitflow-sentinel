@@ -1,9 +1,14 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { run, isFailure, detectHookManager } from "../lib.mjs";
-import { CONTRACT_VERSION, SNAPSHOT_KIND, directoryHash, sha256 } from "./contracts.mjs";
-import { githubLocalState, inspectGitHubProvider } from "./providers/github.mjs";
+import { CONTRACT_VERSION, SNAPSHOT_KIND, directoryHash } from "./contracts.mjs";
+import {
+  DEFAULT_REMOTE_TIMEOUT_MS,
+  githubLocalState,
+  inspectGitHubProvider,
+} from "./providers/github.mjs";
 import { inspectTechnology } from "./technology.mjs";
+import { gitWorktreeState } from "./worktree-state.mjs";
 
 function readJson(file) {
   try { return JSON.parse(readFileSync(file, "utf8")); } catch { return null; }
@@ -35,12 +40,15 @@ function sanitizeRemote(value) {
   return redactText(value);
 }
 
-export function inspectProject(root, { remote: inspectRemote = false, remoteTimeoutMs = 5_000 } = {}) {
+export function inspectProject(root, {
+  remote: inspectRemote = false,
+  remoteTimeoutMs = DEFAULT_REMOTE_TIMEOUT_MS,
+} = {}) {
   const packageJson = readJson(path.join(root, "package.json"));
   const technology = inspectTechnology(root);
   const top = gitValue(root, ["rev-parse", "--show-toplevel"]);
   const isRepo = Boolean(top);
-  const status = isRepo ? gitValue(root, ["status", "--porcelain", "--untracked-files=all"]) : "";
+  const worktree = isRepo ? gitWorktreeState(root) : { status: "", hash: "" };
   const branches = isRepo
     ? gitValue(root, ["branch", "--format=%(refname:short)"]).split(/\r?\n/).filter(Boolean)
     : [];
@@ -74,8 +82,8 @@ export function inspectProject(root, { remote: inspectRemote = false, remoteTime
       topLevel: top,
       branch: isRepo ? gitValue(root, ["branch", "--show-current"]) : "",
       head: isRepo ? gitValue(root, ["rev-parse", "HEAD"]) : "",
-      dirty: Boolean(status),
-      statusHash: isRepo ? sha256(status) : "",
+      dirty: Boolean(worktree.status),
+      statusHash: worktree.hash,
       defaultBranch,
       branches,
       remotes: remote ? [{ name: "origin", url: remote, provider: remote.includes("github.com") ? "github" : "unknown" }] : [],

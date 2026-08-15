@@ -24,6 +24,7 @@ import { inspectGitHubProvider, rulesetMatches } from "./providers/github.mjs";
 import { assertBackupSafe } from "./security.mjs";
 import { getModule } from "./modules/registry.mjs";
 import { mergeManagedBlock } from "./managed-block.mjs";
+import { gitWorktreeHash } from "./worktree-state.mjs";
 
 function gitDir(root) {
   const value = run("git", ["-C", root, "rev-parse", "--absolute-git-dir"], root);
@@ -138,19 +139,6 @@ function assertFilePrecondition(target, expected) {
   }
 }
 
-function currentStatusHash(root, planFile) {
-  const args = ["-C", root, "status", "--porcelain", "--untracked-files=all"];
-  if (planFile) {
-    const relative = path.relative(root, path.resolve(planFile)).replaceAll("\\", "/");
-    if (relative && !relative.startsWith("../") && relative !== "..") {
-      args.push("--", ".", `:(top,exclude,literal)${relative}`);
-    }
-  }
-  const result = run("git", args, root);
-  if (isFailure(result)) throw new Error(`Could not verify Git worktree state: ${result.message}`);
-  return sha256(String(result));
-}
-
 function assertProjectPrecondition(plan, planFile) {
   const expected = plan.snapshot?.git;
   if (!expected?.isRepo) {
@@ -168,7 +156,8 @@ function assertProjectPrecondition(plan, planFile) {
   if (currentHead !== expected.head || String(branch).trim() !== expected.branch) {
     throw new Error("Plan is stale: the current commit or branch changed after inspection.");
   }
-  if (expected.statusHash && currentStatusHash(plan.root, planFile) !== expected.statusHash) {
+  const exclude = planFile ? [planFile] : [];
+  if (expected.statusHash && gitWorktreeHash(plan.root, { exclude }) !== expected.statusHash) {
     throw new Error("Plan is stale: the working tree changed after inspection.");
   }
 }

@@ -4,6 +4,7 @@ import path from "node:path";
 import { containsSecretMaterial } from "./security.mjs";
 import { CONTRACT_VERSION, sha256, stableJson } from "./contracts.mjs";
 import { isFailure, run } from "../lib.mjs";
+import { gitWorktreeHash } from "./worktree-state.mjs";
 
 export const QUALITY_CHECK_KIND = "gitflow-sentinel/quality-check";
 export const QUALITY_EVIDENCE_KIND = "gitflow-sentinel/quality-evidence";
@@ -11,12 +12,6 @@ export const QUALITY_EVIDENCE_KIND = "gitflow-sentinel/quality-evidence";
 function gitValue(root, args) {
   const result = run("git", ["-C", root, ...args], root);
   return isFailure(result) ? "" : String(result).trim();
-}
-
-function statusHash(root) {
-  const value = run("git", ["-C", root, "status", "--porcelain", "--untracked-files=all"], root);
-  if (isFailure(value)) throw new Error("Quality evidence requires a readable Git repository.");
-  return sha256(String(value));
 }
 
 function gitDirectory(root) {
@@ -41,7 +36,7 @@ function currentState(root) {
   return {
     head: gitValue(root, ["rev-parse", "HEAD"]),
     branch: gitValue(root, ["branch", "--show-current"]),
-    statusHash: statusHash(root),
+    statusHash: gitWorktreeHash(root),
   };
 }
 

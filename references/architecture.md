@@ -82,7 +82,12 @@ produces a state-bound R2 hash and runs nothing. After explicit approval, it
 uses direct process arguments without a shell, persists no command output, and
 records evidence only when the command succeeds without changing the worktree.
 CI planning accepts only evidence matching the current commit, branch and
-status hash.
+worktree fingerprint.
+
+The fingerprint combines Git status and staged index state with the bytes,
+type and portable mode of every dirty tracked or untracked path. Editing a file
+that was already dirty therefore invalidates the approval and its evidence
+instead of reusing a path-only hash.
 
 ## GitHub adapter
 

@@ -99,7 +99,7 @@ mutation is blocked if an exact backup would persist a high-confidence secret.
 
 - Before the first stable release, versions use
   `0.0.<iteration>-alpha.<revision>`.
-- The current line is `0.0.3-alpha.1`; corrections on the same line increment
+- The current line is `0.0.3-alpha.2`; corrections on the same line increment
   the alpha revision.
 - Stable `1.0.0` is reserved for stable installation, contracts,
   cross-platform validation and upgrades.

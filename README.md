@@ -16,7 +16,7 @@ les changements dans une transaction restaurable, puis vérifie le résultat.
 Il fonctionne avec **Codex**, **Claude Code** et **OpenCode** sans intégrer de
 modèle, sans demander de clé API et sans imposer de serveur MCP.
 
-> **Alpha publique — `0.0.3-alpha.1`.** Cette version est destinée aux premiers
+> **Alpha publique — `0.0.3-alpha.2`.** Cette version est destinée aux premiers
 > essais et aux revues techniques. Utilisez-la sur un projet versionné ou une
 > copie de travail, examinez chaque plan et signalez tout comportement inattendu.
 

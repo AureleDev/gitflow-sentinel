@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.0.3-alpha.2] — 2026-08-15
+
 ### Added
 
 - Public-review onboarding, issue forms, contribution guidance and a practical

@@ -1,6 +1,6 @@
 {
   "name": "gitflow-sentinel",
-  "version": "0.0.3-alpha.1",
+  "version": "0.0.3-alpha.2",
   "description": "Inspect and safely configure complete project foundations through immutable plans and reversible transactions.",
   "author": {
     "name": "Aurele Gnonlonfoun",

@@ -20,6 +20,8 @@ All notable changes to this project are documented here. The format is based on
 
 ### Fixed
 
+- Test discovery no longer relies on shell glob expansion, which failed on
+  Windows with Node.js 18 in GitHub Actions.
 - GitHub inspection now tolerates normal authenticated CLI latency instead of
   reporting a connected repository as absent after five seconds.
 - Plan and quality-check fingerprints now include the bytes and modes of

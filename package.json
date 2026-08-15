@@ -41,8 +41,8 @@
   "scripts": {
     "bootstrap": "node scripts/bootstrap.mjs",
     "doctor": "node scripts/doctor.mjs",
-    "test": "node --test tests/*.test.mjs",
-    "verify": "node tools/validation/verify-policy.mjs && node --test tests/*.test.mjs",
+    "test": "node --test",
+    "verify": "node tools/validation/verify-policy.mjs && node --test",
     "verify:foundations": "node scripts/foundation-verify.mjs --project-root .",
     "install:guardrails": "node scripts/orchestrate.mjs",
     "validate:evals": "node tools/validation/validate-evals.mjs",

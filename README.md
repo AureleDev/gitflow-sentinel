@@ -1,265 +1,272 @@
 # Gitflow Sentinel
 
-Gitflow Sentinel est un orchestrateur de fondations de projet conçu pour être
-piloté aussi bien par une personne que par Codex, Claude Code ou OpenCode.
+[![npm next](https://img.shields.io/npm/v/gitflow-sentinel/next?label=npm%20next)](https://www.npmjs.com/package/gitflow-sentinel)
+[![CI](https://github.com/AureleDev/gitflow-sentinel/actions/workflows/ci.yml/badge.svg)](https://github.com/AureleDev/gitflow-sentinel/actions/workflows/ci.yml)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-339933)](package.json)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Il inspecte un dossier, construit un état désiré, explique les écarts, produit
-un plan immuable, puis n'applique ce plan qu'après approbation explicite. Les
-changements locaux sont transactionnels et restaurables. Les actions GitHub
-sensibles demandent une confirmation dédiée.
+Gitflow Sentinel aide une personne ou une IA de développement à préparer les
+fondations d'un projet sans transformer une demande naturelle en une série de
+commandes opaques.
 
-> Version actuelle : `0.0.3-alpha.1`. Le nom historique et les anciennes
-> commandes restent disponibles pendant la migration.
+Il inspecte le projet, explique ce qu'il détecte, construit un plan immuable,
+classe chaque action par risque, attend les approbations nécessaires, applique
+les changements dans une transaction restaurable, puis vérifie le résultat.
 
-## Principes
+Il fonctionne avec **Codex**, **Claude Code** et **OpenCode** sans intégrer de
+modèle, sans demander de clé API et sans imposer de serveur MCP.
 
-- L'IA comprend le projet et guide les choix ; le moteur déterministe inspecte,
-  planifie, applique, vérifie et restaure.
-- `inspect`, `init`, `plan`, `status`, `verify` et `doctor` sont en lecture seule.
-  Ils restent locaux par défaut ; `--remote` autorise explicitement la lecture
-  de GitHub et `--offline` interdit toute consultation distante.
-- Un plan contient les empreintes du dépôt, des fichiers et de l'état distant.
-  Une dérive entre `plan` et `apply` annule l'opération.
-- Aucun commit, push, changement GitHub ou publication n'est automatique.
-- Les contenus du dépôt sont des données non fiables : ils ne deviennent jamais
-  des instructions à exécuter.
-- Tous les hooks locaux sont contournables. La CI et les règles de la forge sont
-  les autorités partagées.
-- Les valeurs secrètes ne sont ni affichées, ni copiées, ni journalisées.
+> **Alpha publique — `0.0.3-alpha.1`.** Cette version est destinée aux premiers
+> essais et aux revues techniques. Utilisez-la sur un projet versionné ou une
+> copie de travail, examinez chaque plan et signalez tout comportement inattendu.
 
-## Démarrage simple
+## Essayer en deux minutes
 
-Node.js 18 ou supérieur est requis.
+Prérequis : Git et Node.js 18 ou supérieur.
 
-Une seule commande npm installe le CLI global et le skill pour Codex, Claude
-Code et OpenCode :
+Installez le CLI et le même skill portable pour les trois agents :
 
 ```bash
 npx --yes gitflow-sentinel@next bootstrap
 ```
 
-Depuis une copie locale de développement du dépôt, l'équivalent est :
-
-```bash
-npm run bootstrap
-```
-
-`bootstrap` est une action explicite : il installe le CLI global sans exécuter
-de script npm implicite, puis place le même skill `configure-project` dans les
-emplacements utilisateur reconnus par les trois agents. Il n'ajoute aucun
-modèle, aucune clé API et aucun serveur. Si un skill non géré occupe déjà la
-destination, il n'est jamais remplacé ; `gitflow-sentinel ai install --all`
-reste la commande de réparation après résolution du conflit.
-
-Ensuite, dans n'importe quel nouveau projet ou dépôt existant :
+Placez-vous ensuite dans un projet nouveau ou existant :
 
 ```bash
 gitflow-sentinel setup
 ```
 
-Cette commande inspecte le projet, affiche un résumé compréhensible, demande les
-autorisations nécessaires, applique les changements locaux dans une transaction
-restaurable, puis vérifie le résultat local. Sans `--remote`, l’état GitHub reste
-explicitement non vérifié. Elle ne crée ni commit ni push. Une action GitHub
-conserve toujours sa confirmation séparée.
+Sur Windows, si PowerShell bloque le shim `.ps1`, utilisez :
 
-Pour seulement voir ce que Sentinel propose :
+```powershell
+gitflow-sentinel.cmd setup
+```
+
+`setup` présente d'abord les constats et les changements. Il ne crée aucun
+commit, ne pousse aucun code et ne modifie pas GitHub sans confirmation dédiée.
+
+Pour obtenir uniquement un audit sans écriture :
 
 ```bash
 gitflow-sentinel setup --plan-only
 ```
 
-Depuis Codex ou OpenCode, commencez simplement par :
+## Utiliser Sentinel avec une IA
+
+Après `bootstrap`, ouvrez Codex, Claude Code ou OpenCode dans le projet et dites
+simplement :
 
 > Configure-moi complètement ce projet.
 
-Le skill est conçu pour être sélectionné automatiquement. Comme ce choix reste
-une décision du modèle hôte, Claude Code fournit aussi le raccourci
-déterministe :
+### Activer un parcours interactif
+
+Sentinel doit parfois demander une décision impossible à déduire : visibilité
+publique ou privée, licence, propriétaire GitHub ou stratégie de branches. Pour
+obtenir ces choix sous forme de boutons plutôt que dans une longue conversation :
+
+- **Codex / Codex dans ChatGPT** : activez le **mode Plan** lorsque l'interface
+  le propose. Ce mode est recommandé pour que l'agent puisse présenter les
+  questions structurées avant toute modification ;
+- **Claude Code** : le mode Plan est recommandé. L'outil intégré
+  `AskUserQuestion` permet normalement de poser les questions à choix multiples ;
+- **OpenCode** : autorisez l'outil `question` avec la permission `allow` ou
+  `ask` dans `opencode.json`.
+
+Si l'interface ne fournit ni mode Plan ni outil de question structurée, le
+parcours reste utilisable : l'agent doit poser une question courte en texte
+normal et attendre votre réponse. Il ne doit jamais choisir à votre place.
+
+Le mode Plan améliore le dialogue, mais ne remplace pas les approbations
+Sentinel liées au hash du plan et aux risques R2/R3. Une conversation qui n'a
+pas accès au dépôt et au terminal peut expliquer le parcours, mais ne peut pas
+exécuter le CLI.
+
+Le skill `configure-project` guide l'agent dans le même parcours déterministe :
+
+```text
+inspecter → expliquer → décider → planifier
+→ approuver → appliquer → vérifier
+```
+
+Dans Claude Code, le raccourci explicite reste disponible :
 
 ```text
 /configure-project Configure-moi complètement ce projet.
 ```
 
-Les deux parcours appellent le même CLI, calculent le même plan et attendent les
-mêmes approbations.
+L'IA interprète le contexte et explique les choix. Le CLI reste responsable de
+l'inspection, du diff, des préconditions, des écritures, du journal de
+transaction, de la vérification et de la restauration.
 
-## Parcours avancé et automatisable
+## Ce que Sentinel peut configurer
 
-Le parcours détaillé reste disponible pour les agents et la CI :
-
-```bash
-gitflow-sentinel inspect . --json
-gitflow-sentinel plan . --profile standard --output sentinel-plan.json
-gitflow-sentinel apply --plan sentinel-plan.json --approve <plan-hash>
-gitflow-sentinel verify . --json
-gitflow-sentinel status .
-```
-
-Ajoutez `--remote` seulement lorsqu'un état GitHub doit être lu. Sans cette
-option, l'inspection et la planification restent locales.
-
-Une commande de qualité découverte dans le dépôt n'est jamais exécutée
-automatiquement. Elle suit un mini-plan R2 distinct :
-
-```bash
-# Aperçu seulement : aucun processus n'est lancé
-gitflow-sentinel check . -- npm test
-
-# Exécution exacte après approbation du hash affiché
-gitflow-sentinel check . --approve <check-hash> -- npm test
-```
-
-La preuve enregistrée est liée au commit, à la branche et à l'état exact du
-worktree. La sortie de la commande n'est pas conservée ; seul son condensat est
-journalisé. La CI n'est générée que si chaque commande déclarée dans
-`quality.verifiedCommands` possède une preuve encore valide.
-
-Chaque groupe R2 affiché dans le plan exige
-`--approve-r2 <groupe>:<hash>`. Une action distante de niveau R3 exige en plus
-`--approve-r3 <action-id>`. L'outil ne crée jamais de commit et ne pousse
-jamais le code.
-
-En cas d'interruption :
-
-```bash
-gitflow-sentinel resume <transaction-id>
-gitflow-sentinel rollback <transaction-id>
-```
-
-Pour recalculer les changements d'une nouvelle version :
-
-```bash
-gitflow-sentinel update . --profile standard
-```
-
-La désinstallation du nouveau moteur commence elle aussi par un plan :
-
-```bash
-gitflow-sentinel uninstall .                       # aperçu + hash
-gitflow-sentinel uninstall . --approve <hash>     # restauration locale
-```
-
-Elle retire uniquement les éléments dont les transactions prouvent la propriété
-et restaure leurs octets précédents. `legacy-uninstall` reste disponible pour
-une installation historique 2.x.
-
-## Profils
-
-| Profil | Contenu |
+| Fondation | Comportement |
 |---|---|
-| `minimal` | Git, instructions IA, sécurité essentielle |
-| `standard` | Minimal + documentation, qualité détectée, CI, dépendances et sécurité |
-| `hardened` | Standard + politique Git locale historique, règles distantes renforcées, CODEOWNERS, CodeQL et revue |
-| `custom` | Modules explicitement sélectionnés |
+| Git | Initialisation, branche principale, stratégie trunk/git-flow, ignore et attributs |
+| GitHub | Création du dépôt et ruleset dédié derrière des actions R3 ; la visibilité d'un dépôt existant reste une opération manuelle en alpha |
+| Agents IA | `AGENTS.md` canonique et adaptateurs minimaux Codex, Claude Code et OpenCode |
+| Documentation | README, contribution, sécurité, licence, conduite et modèle de PR |
+| Qualité | Découverte des commandes existantes de test, lint, formatage et build |
+| CI | Jobs générés uniquement depuis des commandes explicitement vérifiées |
+| Sécurité | Détection locale de secrets, Dependabot et CodeQL lorsque pertinent |
+| Versions | Conventions, changelog et préparation de release sans publication automatique |
 
-Le fichier déclaratif est `sentinel.config.json`. Il est validé par le schéma
-local [`assets/sentinel/schema.json`](assets/sentinel/schema.json). Les journaux,
-preuves de qualité, sauvegardes et transactions restent sous `.git/sentinel/`
-et ne sont jamais
-suivis par Git.
+Le profil `standard` est recommandé. Il préserve les outils déjà choisis par le
+projet et n'ajoute pas automatiquement un nouveau linter, formateur, gestionnaire
+de paquets, service payant ou fournisseur de déploiement.
 
-## Niveaux de risque
+Cloud, domaines, bases de données, infrastructure et déploiement restent hors du
+périmètre de cette alpha.
 
-| Niveau | Exemple | Approbation |
+## Limites connues de l'alpha
+
+Les premiers essais réels ont identifié des écarts importants qui restent à
+corriger :
+
+- le setup interactif ne demande pas encore la stratégie de branches, le
+  propriétaire GitHub, la visibilité et la création du dépôt ; utilisez les
+  options explicites de `init` ou `plan` lorsque ces décisions sont nécessaires ;
+- sélectionner `git-flow` déclare actuellement `main` et `dev`, mais ne crée
+  pas encore automatiquement la branche `dev` manquante ;
+- `github-create` crée le dépôt et ajoute `origin`, sans créer de commit, pousser
+  les branches ni changer la branche GitHub par défaut ; chaque opération devra
+  devenir une action distincte et approuvée ;
+- la CI est volontairement différée tant que les commandes de qualité n'ont pas
+  de preuve locale actuelle ;
+- selon le plan GitHub et les permissions du dépôt, les rulesets peuvent être
+  illisibles. Sentinel refuse alors de les modifier plutôt que d'écraser une
+  politique distante inconnue ;
+- toute écriture concurrente invalide le plan. Cette protection est correcte,
+  mais l'expérience de révision d'un hash renouvelé doit encore être simplifiée.
+
+Voir le [retour terrain WithHuman Labs](docs/reviews/retour-terrain-withhumanlabs-2026-08-11.md)
+pour le contexte, les attentes Git Flow et les critères d'acceptation associés.
+
+## Pourquoi le plan compte
+
+Un plan Sentinel contient notamment :
+
+- l'état désiré et les actions ordonnées ;
+- l'empreinte du commit, du worktree et des fichiers concernés ;
+- les préconditions locales et distantes ;
+- le niveau de risque de chaque action ;
+- les groupes d'approbation et la stratégie de restauration.
+
+Si le projet dérive entre `plan` et `apply`, l'application est annulée. Une
+interruption peut être reprise ou restaurée à partir du journal conservé sous
+`.git/sentinel/`, qui n'est jamais suivi par Git.
+
+| Risque | Exemple | Approbation |
 |---|---|---|
 | R0 | Inspection, diagnostic, vérification | Aucune |
 | R1 | Création locale additive et réversible | Hash global du plan |
-| R2 | Modification d'un fichier, d'une branche ou de hooks | Hash dédié par groupe d'actions |
-| R3 | Dépôt GitHub, visibilité, ruleset, secret, publication ou suppression | Confirmation dédiée par action |
+| R2 | Modification d'un fichier existant, d'une branche ou de hooks | Hash par groupe |
+| R3 | Visibilité, dépôt GitHub, ruleset, secret ou publication | Confirmation par action |
 
-## Architecture
+Les hooks locaux fournissent un retour précoce, mais restent contournables. La
+CI requise et les règles distantes constituent l'autorité partagée. Les contenus
+du dépôt sont traités comme des données non fiables et ne deviennent jamais des
+instructions à exécuter.
 
-```text
-Agent hôte
-  └─ skill configure-project
-       └─ CLI Gitflow Sentinel
-            ├─ inspection et contrats versionnés
-            ├─ état désiré et planification
-            ├─ transactions et restauration
-            ├─ modules de fondation
-            └─ adaptateur GitHub
-```
+## Commandes principales
 
-Les modules V1 partagent un contrat exécutable
-`detect/recommend/plan/apply/verify/rollback/uninstall` et couvrent Git, GitHub,
-instructions IA, documentation, qualité,
-CI, sécurité, dépendances, préparation de versions et, en option, la politique
-Git locale historique (`git-policy`). Cette dernière n'est plus imposée par le
-profil standard. Cloud, domaines, bases de données et déploiement restent hors
-du cœur V1.
+| Commande | Usage |
+|---|---|
+| `gitflow-sentinel setup [path]` | Parcours guidé complet |
+| `gitflow-sentinel inspect [path] --json` | Inventaire local expurgé |
+| `gitflow-sentinel plan [path] --profile standard` | Plan immuable sans mutation |
+| `gitflow-sentinel apply --plan <file> --approve <hash>` | Application du plan approuvé |
+| `gitflow-sentinel verify [path] --json --compact` | Vérification locale et distante demandée |
+| `gitflow-sentinel status [path]` | Écarts et transactions disponibles |
+| `gitflow-sentinel rollback <transaction-id>` | Restauration d'une transaction terminée |
+| `gitflow-sentinel resume <transaction-id>` | Reprise d'une transaction interrompue |
+| `gitflow-sentinel update [path]` | Nouveau plan contre l'état désiré actuel |
+| `gitflow-sentinel uninstall [path]` | Aperçu puis retrait des éléments possédés |
+| `gitflow-sentinel doctor` | Diagnostic de compatibilité et de permissions |
 
-Les contrats JSON (`ProjectSnapshot`, `DesiredState`, `ChangePlan` et
-`TransactionRecord`) sont versionnés. L'adaptateur GitHub applique un ruleset
-dédié sans remplacer les réglages que Sentinel ne gère pas.
+Les consultations GitHub sont opt-in avec `--remote`. `--offline` interdit toute
+consultation distante.
 
-Voir :
-
-- [Atlas visuel : architecture, parcours, sécurité et plateformes](references/visuals/index.html)
-- [Architecture](references/architecture.md)
-- [État désiré et configuration](references/configuration.md)
-- [Modèle de menace](references/threat-model.md)
-- [Compatibilité des agents](references/platform-adapters.md)
-- [Validation Windows, WSL/Linux et macOS](references/platform-validation.md)
-- [Preuves de validation conservées dans le dépôt](https://github.com/AureleDev/gitflow-sentinel/tree/main/docs/validation)
-- [Migration](references/migration.md)
-
-## Skill portable et plugin Codex
-
-La procédure commune se trouve dans
-[`skills/configure-project`](skills/configure-project/SKILL.md). Elle suit le
-cycle :
-
-```text
-inspecter → expliquer → demander les choix non déductibles
-→ planifier → approuver → appliquer → vérifier
-```
-
-L'installateur `bootstrap` prépare les trois agents supportés en même temps que
-le CLI global. `gitflow-sentinel ai install --all` permet de réparer ou
-réinstaller cette intégration. Le même skill est partagé via
-`.agents/skills/configure-project` pour Codex/OpenCode et miroité sous
-`.claude/skills/configure-project` pour Claude Code. Le manifeste
-[`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) prépare aussi une future
-distribution comme plugin Codex. Aucun modèle intégré, serveur MCP ou clé API
-n'est requis.
-
-## Compatibilité historique
-
-`doctor`, `install`, `orchestrate`, `github-protect` et `legacy-uninstall` restent
-disponibles pour les installations 2.x. Ils émettent une indication de
-migration lorsqu'un parcours équivalent existe. La politique Git historique est
-désormais planifiée comme un module de Sentinel Core et non comme le produit
-entier.
-
-## Développement et validation
+Les commandes de qualité découvertes dans un dépôt suivent une approbation R2
+distincte avant leur première exécution :
 
 ```bash
-npm test
+gitflow-sentinel check . -- npm test
+gitflow-sentinel check . --approve <check-hash> -- npm test
+```
+
+## État de validation de l'alpha
+
+Les preuves actuelles couvrent :
+
+- 102 scénarios de politique ;
+- la suite automatisée du cœur réussie sous Windows, avec un scénario de lien
+  symbolique ignoré lorsque le compte ne possède pas le privilège nécessaire ;
+- installation et exécution de l'archive npm réelle ;
+- cycles `plan → apply → verify → rollback` et désinstallation octet-exacts ;
+- interruption et reprise après chaque famille d'action locale ;
+- chemins Windows longs et contenant des espaces ;
+- deux projets brownfield isolés : un monorepo TypeScript/pnpm et un projet
+  Python, sans mutation de leurs dépôts sources.
+
+La CI est configurée pour Windows, Linux et macOS avec Node.js 18 et 22. Les
+premières exécutions publiques doivent encore confirmer cette matrice. Les sept
+cas d'évaluation agent sont structurellement valides, mais ne constituent pas
+encore une campagne comparative complète avec des agents vivants.
+
+Consultez les [preuves de validation](docs/validation/README.md), la
+[revue de terrain externe historique](docs/reviews/revue-terrain-hermes-agent-2026-08-06.md)
+et sa [réponse datée](docs/reviews/reponse-revue-terrain-hermes-agent-2026-08-10.md),
+ainsi que le [retour WithHuman Labs](docs/reviews/retour-terrain-withhumanlabs-2026-08-11.md).
+Ces documents conservent les numéros de version, les constats et les limites de
+leur date ; ils ne remplacent pas l'état actuel des tests.
+
+## Participer aux premières revues
+
+Les retours les plus utiles portent actuellement sur :
+
+1. l'installation depuis une machine propre ;
+2. la qualité des plans sur un dossier vide et sur un dépôt existant ;
+3. la conservation des configurations personnalisées ;
+4. la compréhension des approbations R1, R2 et R3 ;
+5. l'idempotence, la reprise et la restauration ;
+6. la cohérence du parcours entre Codex, Claude Code et OpenCode ;
+7. les faux positifs, instructions ambiguës et limites de sécurité.
+
+Avant d'ouvrir un retour, retirez les secrets, noms de clients, URL privées et
+données personnelles. Utilisez les formulaires GitHub adaptés et joignez la
+version, le système, le type de projet, la commande exécutée et le résultat
+attendu. Voir le [guide des premières revues](docs/early-review-guide.md) et
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+Pour une vulnérabilité, n'ouvrez pas d'issue publique : suivez
+[SECURITY.md](SECURITY.md).
+
+## Développer le projet
+
+```bash
+npm install --ignore-scripts
 npm run verify
 npm run validate:evals
 npm run validate:package
 npm run validate:self-host
-npm pack --dry-run
 ```
 
-La matrice brownfield peut être exécutée sur des copies temporaires de projets
-réels, sans modifier les sources :
+La validation d'archive installe le paquet réellement produit au lieu de tester
+seulement les sources. La matrice brownfield copie explicitement les projets
+hors de leur dossier source et exclut les fichiers sensibles connus.
 
-```bash
-node tools/validation/validate-project-matrix.mjs \
-  --source /path/to/python-project \
-  --source /path/to/node-project \
-  --source /path/to/monorepo \
-  --profile standard
-```
+## Documentation de référence
 
-La suite couvre notamment les dépôts greenfield et brownfield, l'idempotence,
-les plans périmés, l'interruption après chaque famille d'action locale, les
-verrous concurrents, la restauration des octets et modes, les chemins hostiles,
-les dossiers parents vides, les chemins longs Windows, les configurations
-invalides, les sauvegardes sensibles et l'expurgation des identifiants dans les
-remotes.
+- [Architecture](references/architecture.md)
+- [Configuration déclarative](references/configuration.md)
+- [Workflow et versions](references/workflow.md)
+- [Modèle de menace](references/threat-model.md)
+- [Politique Git locale](references/policy.md)
+- [Compatibilité des agents](references/platform-adapters.md)
+- [État de validation des plateformes](references/platform-validation.md)
+- [Atlas visuel](references/visuals/index.html)
+- [Migration des installations historiques](references/migration.md)
 
 ## Licence
 

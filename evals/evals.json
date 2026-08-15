@@ -36,6 +36,7 @@
       "assertions": [
         "All three agents use the configure-project skill workflow.",
         "All three use Sentinel CLI JSON rather than reimplementing the policy.",
+        "Each host uses its structured question tool for non-deducible choices when available, or asks in plain text and waits without inventing an answer.",
         "Ordered actions, desired state, risks, and preconditions are equivalent.",
         "AGENTS.md is canonical and platform files are minimal adapters."
       ],

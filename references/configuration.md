@@ -75,8 +75,11 @@ module set rather than changing the meaning of `standard` silently.
 
 ## Project decisions
 
-`project.visibility` may be `private`, `public` or `internal`. Creating a remote
-or changing visibility is always R3 and requires a separate approval.
+`project.visibility` may be `private`, `public` or `internal`. It controls the
+visibility of a repository created by Sentinel. Repository creation is always
+R3 and requires a separate approval. In the current alpha, changing the
+visibility of an already connected repository is not planned or applied by the
+GitHub adapter; perform and verify that external action separately.
 
 `git.strategy` may be `trunk`, `git-flow` or `detect`. Ambiguity produces a
 recommendation; it never silently forces a branch model.

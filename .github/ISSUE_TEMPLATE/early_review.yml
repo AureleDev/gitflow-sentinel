@@ -1,0 +1,83 @@
+name: Première revue
+description: Partager un essai structuré sur un vrai projet ou une copie jetable.
+title: "[Revue alpha] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ce formulaire mesure l'utilité, la sûreté et la clarté du parcours. Ne partagez ni dépôt privé, ni secret, ni donnée client.
+  - type: input
+    id: environment
+    attributes:
+      label: Version et environnement
+      placeholder: Sentinel 0.0.3-alpha.1, Ubuntu 24.04, Node.js 22, Claude Code
+    validations:
+      required: true
+  - type: dropdown
+    id: journey
+    attributes:
+      label: Parcours essayé
+      options:
+        - Dossier vide
+        - Dépôt existant
+        - Interaction par demande naturelle à une IA
+        - Plan et application manuels
+        - Reprise ou restauration
+        - Autre
+    validations:
+      required: true
+  - type: textarea
+    id: project
+    attributes:
+      label: Projet testé
+      description: Décrivez seulement la technologie, la taille et l'état initial.
+      placeholder: Monorepo TypeScript pnpm, 4 workspaces, dépôt propre
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Étapes réalisées
+      description: Demande naturelle ou commandes exactes, sans donnée sensible.
+    validations:
+      required: true
+  - type: textarea
+    id: findings
+    attributes:
+      label: Constats
+      description: Ce qui était clair, utile, confus, incorrect ou manquant.
+    validations:
+      required: true
+  - type: dropdown
+    id: idempotence
+    attributes:
+      label: Le second plan était-il vide ?
+      options:
+        - Oui
+        - Non
+        - Non testé
+    validations:
+      required: true
+  - type: dropdown
+    id: rollback
+    attributes:
+      label: La restauration a-t-elle retrouvé l'état initial ?
+      options:
+        - Oui, exactement
+        - Non
+        - Non testé
+    validations:
+      required: true
+  - type: textarea
+    id: priority
+    attributes:
+      label: Correction prioritaire selon vous
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Vérification avant envoi
+      options:
+        - label: Le retour ne contient aucun secret, dépôt privé ou contenu client.
+          required: true

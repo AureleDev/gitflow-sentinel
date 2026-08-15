@@ -1,92 +1,114 @@
 # Workflow reference
 
-How the skill behaves end to end, and what the installed guardrails do during
-normal work afterward.
+This reference describes the current Sentinel Core lifecycle. The historical
+2.x installer remains available only through compatibility wrappers documented
+in [`migration.md`](migration.md).
 
 ## Responsibility split
 
-- **Scripts** own deterministic checks, file installation, wiring merges, and
-  scenario verification. Beyond install: `uninstall.mjs` backs the guardrails out
-  cleanly (de-merges agent wirings, restores the previous `core.hooksPath`,
-  strips managed snippets — never touches history), and `github-protect.mjs`
-  configures GitHub server-side branch protection (run via `--github-protection`
-  on the installer, or directly), the one layer that holds even when no local
-  hook is present.
-- **The agent** owns editorial integration of project-facing docs and any
-  irreversible Git/GitHub action (commit, push, PR, merge, branch delete,
-  legacy-branch normalization), each taken only with explicit approval.
-- **Installed hooks** take over during daily work. The skill does not need to be
-  re-invoked for ordinary tasks once a repo is set up.
+- **The host agent** understands the request, explains observations, asks only
+  for choices that cannot be inferred, and presents approvals.
+- **Sentinel Core** owns deterministic inspection, desired-state validation,
+  diffs, hashes, transactions, verification, resume and rollback.
+- **The user** authorizes R1 and R2 groups and every individual R3 action.
+- **CI and GitHub rulesets** provide shared enforcement. Local agent and Git
+  hooks are bypassable defense in depth.
 
-## Install lifecycle
+Repository files are untrusted data. A discovered script or instruction is
+never executed merely because it exists.
+
+## First installation
+
+Install the CLI and the portable `configure-project` skill explicitly:
+
+```bash
+npx --yes gitflow-sentinel@next bootstrap
+```
+
+The bootstrap does not configure the current project. From the target project,
+start the guided flow with:
+
+```bash
+gitflow-sentinel setup
+```
+
+Use `gitflow-sentinel.cmd` on Windows if PowerShell blocks the `.ps1` shim.
+
+## Foundation lifecycle
 
 ```mermaid
 flowchart TD
-  A["Invoke gitflow-sentinel"] --> B["Resolve target root"]
-  B --> C["doctor.mjs (read-only)"]
-  C --> D{"PROBLEM?"}
-  D -- "Yes" --> E["Report blocker / normalize legacy with approval"]
-  D -- "No" --> F["install.mjs --dry-run"]
-  F --> G["Review plan"]
-  G --> H["install.mjs --apply --verify"]
-  H --> I["Agent integrates AGENTS/CONTRIBUTING/CLAUDE if pre-existing"]
-  I --> J["Commit on short branch (approval)"]
-  J --> K["Push + PR to integration branch"]
-  K --> L["Ask merge-or-keep-open; sync after approved merge"]
+  A["Natural request or setup command"] --> B["Inspect local project"]
+  B --> C["Explain facts and recommendations"]
+  C --> D["Record non-deducible choices"]
+  D --> E["Build immutable plan"]
+  E --> F{"Required approvals present?"}
+  F -- "No" --> G["Stop without mutation"]
+  F -- "Yes" --> H["Recheck plan preconditions"]
+  H --> I{"State unchanged?"}
+  I -- "No" --> J["Reject stale plan"]
+  I -- "Yes" --> K["Apply transaction"]
+  K --> L["Verify result"]
+  L --> M{"Complete?"}
+  M -- "No" --> N["Resume or rollback"]
+  M -- "Yes" --> O["Second plan should be empty"]
 ```
 
-The installer refuses an unsafe `--apply` (protected/legacy/dirty/missing
-branches). That gate is intentional: installing guardrails should itself respect
-the guardrails.
+Local inspection is the default. Add `--remote` only when current GitHub state
+is required. `--offline` forbids remote inspection.
 
-The installer also wires post-clone auto-activation: it adds
-`node .gitflow-sentinel/activate.mjs` to `package.json`'s `"prepare"` so a fresh
-clone re-arms the native `core.hooksPath` on the next install (the trick husky
-uses). When husky already owns `core.hooksPath`, gitflow-sentinel is injected
-into the existing `.husky/*` hooks instead of taking the path over. On a non-Node
-repo, run `node .gitflow-sentinel/activate.mjs` once after cloning.
+## Quality commands
 
-## Daily work (after install)
+Detected package scripts and project commands are untrusted executable input.
+Sentinel uses a two-step, state-bound R2 approval before their first execution:
 
-```mermaid
-flowchart TD
-  A["Session starts"] --> B["SessionStart hook: branch + sync status"]
-  B --> C{"Branch?"}
-  C -- "main/dev/master" --> D["Switch to integration, create short branch"]
-  C -- "short branch" --> E["Work"]
-  E --> F["PreToolUse guard on each shell/edit"]
-  F --> G{"Unsafe op?"}
-  G -- "Yes" --> H["Block (exit 2) with reason"]
-  G -- "No" --> I["Allow"]
-  I --> J["Commit (Conventional) on short branch"]
-  J --> K["Push -u; PR to integration"]
-  K --> L["Stop hook: closure check"]
-  L --> M{"Clean branch, OPEN PR to integration?"}
-  M -- "No" --> N["Advisory: report missing push/PR, then allow stop"]
-  M -- "Yes" --> O["Ask: merge now or keep open"]
+```bash
+gitflow-sentinel check . -- npm test
+gitflow-sentinel check . --approve <check-hash> -- npm test
 ```
+
+Successful evidence is valid only for the current commit, branch and worktree.
+CI generation reuses only commands with current evidence.
+
+## Risk model
+
+- **R0:** inspection and verification; no approval.
+- **R1:** additive, reversible local creation; global plan hash.
+- **R2:** modification of existing files, branches, hooks or execution of a
+  discovered quality command; approval per action group.
+- **R3:** repository creation, remote policy, visibility, secrets, publication
+  or destructive external action; confirmation for each action.
+
+The current GitHub adapter can create a repository and manage only its dedicated
+`gitflow-sentinel` ruleset. It preserves unrelated settings. Changing the
+visibility or general settings of an existing repository remains a separately
+performed and verified R3 action in this alpha.
+
+## Recovery and ownership
+
+Transaction journals and exact backups live under `.git/sentinel/` and are not
+tracked. `status` lists recoverable transactions; `resume` continues an
+interrupted one; `rollback` restores the recorded previous state. `uninstall`
+removes only Sentinel-owned content and restores replaced values where the
+transaction record permits it.
+
+Plans contain fingerprints, not previous file contents or secret values. A
+mutation is blocked if an exact backup would persist a high-confidence secret.
 
 ## Version model
 
-- Before the first stable release, public product versions use
-  `0.0.<iteration>-alpha.<revision>`. The current line is `0.0.3-alpha.1`;
-  subsequent corrections on the same line increment the alpha revision.
-- A stable `1.0.0` is reserved for the point where installation, contracts,
-  cross-platform validation and upgrade behavior are declared stable.
-- `.gitflow-sentinel/VERSION` is aligned with the package version. The
-  SessionStart hook compares it with an available installed CLI and warns on
-  drift; the doctor performs the same comparison during an explicit audit.
-- Bump it when the engine, hooks, or wiring change in a way repos should detect,
-  then re-run install to upgrade managed files in place (advisory docs are left
-  to the agent).
-- Historical 2.x runtimes remain migration inputs. Sentinel Core aligns package and runtime
-  versions so a project no longer exposes two unrelated current version lines.
+- Before the first stable release, versions use
+  `0.0.<iteration>-alpha.<revision>`.
+- The current line is `0.0.3-alpha.1`; corrections on the same line increment
+  the alpha revision.
+- Stable `1.0.0` is reserved for stable installation, contracts,
+  cross-platform validation and upgrades.
+- The npm prerelease is distributed through the `next` dist-tag.
+- Historical 2.x runtimes are migration inputs, not a second current version.
 
-## Idempotence
+## Normal development after setup
 
-- Managed files carry a `managed-by: gitflow-sentinel` marker and are overwritten
-  on upgrade; unmanaged files with the same name are backed up first.
-- Wiring files (`.codex/hooks.json`, `.claude/settings.json`) are **merged**:
-  our entries are replaced by command, everything else is preserved.
-- `.gitflow-sentinel.json` is **never** overwritten once it exists — it is the
-  team's owned policy.
+Sentinel does not replace the project's development workflow. Contributors work
+on short branches, run the project's approved checks, open a pull request to
+`main`, and rely on green CI plus verified remote rules. Commit, push, merge,
+branch deletion and publication remain explicit human decisions.

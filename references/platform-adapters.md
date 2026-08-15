@@ -25,6 +25,13 @@ commands, constraints and completion criteria without copying the full skill.
 Codex uses the portable skill and the bundled plugin manifest. Repository rules
 and hooks are merged structurally when required. Existing entries are preserved.
 
+When the active Codex interface exposes Plan mode, recommend enabling it before
+starting project configuration. It provides the best interaction for presenting
+non-deducible choices through the host's structured question tool. Because
+interfaces may expose Plan mode differently, this is a recommendation rather
+than an installation prerequisite. Without that tool, the agent asks a concise
+plain-text question and waits.
+
 On Windows, a host-level Codex sandbox helper can fail before Sentinel starts.
 Treat that as an incomplete agent run. Never disable the sandbox merely to
 continue against a real or untrusted project; reproduce the problem only in a
@@ -44,11 +51,30 @@ Sentinel can mirror the same skill to:
 `CLAUDE.md` stays a small adapter pointing to `AGENTS.md`. Existing
 `.claude/settings.json` content is merged, never replaced.
 
+Claude Code's built-in `AskUserQuestion` tool can present multiple-choice
+clarifications and is especially useful in Plan mode. It is available by
+default; a custom restricted tool list must include it. See the
+[Claude Code user-input documentation](https://code.claude.com/docs/en/agent-sdk/user-input).
+
 ## OpenCode
 
 OpenCode can discover the portable `.agents/skills` layout. `opencode.json` is
 created only when a concrete platform-specific permission or agent setting is
 needed.
+
+Its built-in `question` tool supports structured choices. If permissions have
+been customized, set `permission.question` to `allow` or `ask`. Preserve all
+unrelated settings and do not create a configuration file when the tool is
+already available. See the
+[OpenCode tools documentation](https://opencode.ai/docs/fr/tools/#question).
+
+## Interaction fallback
+
+Structured questions are a user-experience improvement, not an approval
+boundary. If a host lacks Plan mode or an interactive question tool, the agent
+must ask one plain-text decision at a time and wait. It must not infer consent,
+and a host answer never substitutes for the exact Sentinel plan, R2 group or R3
+action approval.
 
 ## Hooks
 

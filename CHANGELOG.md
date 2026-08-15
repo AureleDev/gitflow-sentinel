@@ -4,6 +4,27 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Public-review onboarding, issue forms, contribution guidance and a practical
+  alpha review guide.
+- Cross-host interaction guidance recommending Plan mode and structured
+  questions when available, with a plain-text fallback that never invents user
+  decisions.
+- The WithHuman Labs field report and an explicit public list of the remaining
+  Git Flow, initial synchronization, CI-evidence and private-ruleset limits.
+
+### Fixed
+
+- GitHub inspection now tolerates normal authenticated CLI latency instead of
+  reporting a connected repository as absent after five seconds.
+- Plan and quality-check fingerprints now include the bytes and modes of
+  already dirty tracked and untracked paths, plus staged index state, so edits
+  cannot reuse an approval merely because `git status` still lists the same
+  filenames.
+
 ## [0.0.3-alpha.1] — 2026-08-10
 
 ### Added

@@ -1,17 +1,31 @@
-<!-- gitflow-sentinel PR template -->
-## What & why
+## Résumé et motivation
 
-<!-- Summary of the change and the motivation. -->
+<!-- Quel problème est résolu ? Pourquoi cette approche ? -->
 
-## Branch routing
+## Portée
 
-- [ ] Head branch follows `type/topic` (feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, …) or is `main`/`release/*`/`hotfix/*`.
-- [ ] Base is `main` for short branches, or `main` only for `main`/`release/*`/`hotfix/*`.
+<!-- Fichiers, contrats ou comportements concernés. Mentionner ce qui reste hors portée. -->
 
-## Checklist
+## Risque et retour arrière
 
-- [ ] Conventional Commit messages.
-- [ ] No secrets or `.env*` files committed.
-- [ ] No `--no-verify` / hook bypass used.
-- [ ] Tests/checks pass locally.
-- [ ] Docs updated if behavior changed.
+<!-- Niveau R0-R3 si pertinent, principaux risques et manière de revenir à l'état précédent. -->
+
+## Validation
+
+<!-- Commandes exécutées et résultats. Indiquer explicitement les contrôles non exécutés. -->
+
+- [ ] `npm run verify`
+- [ ] `npm run validate:evals`
+- [ ] `npm run validate:package`
+- [ ] `npm run validate:self-host` si le changement le justifie
+
+## Liste de contrôle
+
+- [ ] La branche est courte et cible `main`.
+- [ ] Le titre et les commits suivent Conventional Commits.
+- [ ] Aucun secret, fichier `.env`, nom de client ou contenu privé n'est inclus.
+- [ ] Aucun hook ou contrôle n'a été contourné.
+- [ ] Les tests couvrent le comportement modifié.
+- [ ] La documentation reflète les capacités réelles et leurs limites.
+- [ ] Les fichiers et paramètres non gérés sont préservés.
+- [ ] Toute action externe ou publique éventuelle est clairement annoncée.

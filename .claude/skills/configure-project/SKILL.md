@@ -28,6 +28,13 @@ Do not recursively load unrelated product or governance documents before this
 preview. Read only the files needed to resolve a material choice or review a
 specific proposed modification.
 
+Prefer the host's plan mode and structured user-question tool when they are
+available. Use them only for material choices that cannot be inferred. If the
+host has no structured question capability, ask one concise plain-text question
+and wait for the answer; never choose on the user's behalf. Host interaction
+does not replace Sentinel's hash-bound R1/R2 approvals or action-specific R3
+approvals. Read [platforms.md](references/platforms.md) for host-specific setup.
+
 If the user requested an audit, a preview, or no modification, report the
 compact findings and stop. Do not create a second prose plan, request
 application approvals, or ask the user to reconfirm defaults. For a

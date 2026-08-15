@@ -1,0 +1,55 @@
+{
+  "kind": "gitflow-sentinel/desired-state",
+  "schemaVersion": 1,
+  "profile": "standard",
+  "project": {
+    "name": "gitflow-sentinel",
+    "visibility": "public",
+    "description": "Cross-agent project-foundation orchestrator with inspection, immutable plans, transactional apply/rollback, Git policy, CI, documentation, security, and GitHub adapters.",
+    "license": "MIT"
+  },
+  "vcs": {
+    "provider": "github",
+    "strategy": "trunk",
+    "stableBranch": "main",
+    "integrationBranch": "main",
+    "legacyBranch": "master",
+    "protectedBranches": [
+      "main"
+    ]
+  },
+  "agents": {
+    "enabled": [
+      "codex",
+      "claude",
+      "opencode"
+    ]
+  },
+  "github": {
+    "createRepository": false,
+    "owner": "",
+    "reviewers": 1,
+    "manageRuleset": true
+  },
+  "quality": {
+    "verifiedCommands": [
+      "npm run verify",
+      "npm run validate:evals",
+      "npm run validate:package",
+      "npm run validate:self-host"
+    ]
+  },
+  "modules": {
+    "enabled": [
+      "git",
+      "github",
+      "agents",
+      "docs",
+      "quality",
+      "ci",
+      "security",
+      "dependencies",
+      "release"
+    ]
+  }
+}

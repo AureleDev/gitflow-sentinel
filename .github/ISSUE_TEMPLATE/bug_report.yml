@@ -1,0 +1,69 @@
+name: Signaler un bug
+description: Signaler un comportement reproductible de Gitflow Sentinel.
+title: "[Bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de retirer tout secret, nom de client, URL privée et donnée personnelle. Pour une vulnérabilité, suivez SECURITY.md au lieu d'ouvrir une issue.
+  - type: input
+    id: version
+    attributes:
+      label: Version de Sentinel
+      placeholder: 0.0.3-alpha.2
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environnement
+      description: Système, version de Node.js et agent éventuel.
+      placeholder: Windows 11, Node.js 22, Codex
+    validations:
+      required: true
+  - type: dropdown
+    id: project_state
+    attributes:
+      label: État initial du projet
+      options:
+        - Dossier vide
+        - Dépôt Git existant propre
+        - Dépôt Git existant avec changements locaux
+        - Monorepo
+        - Autre
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction minimale
+      description: Commandes ou demande naturelle, dans un projet jetable et sans donnée sensible.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Résultat attendu
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: Résultat observé
+      description: Ajoutez seulement des sorties expurgées nécessaires au diagnostic.
+    validations:
+      required: true
+  - type: textarea
+    id: recovery
+    attributes:
+      label: État après reprise ou restauration
+      description: Indiquez si resume ou rollback a été essayé et avec quel résultat.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Vérification avant envoi
+      options:
+        - label: J'ai retiré tous les secrets et contenus privés.
+          required: true
+        - label: J'ai vérifié qu'il ne s'agit pas d'un signalement de sécurité public.
+          required: true

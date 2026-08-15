@@ -1,0 +1,46 @@
+name: Proposer une amélioration
+description: Décrire un besoin utilisateur non couvert par l'alpha.
+title: "[Amélioration] "
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème à résoudre
+      description: Décrivez le besoin et son impact avant de proposer une solution.
+    validations:
+      required: true
+  - type: textarea
+    id: current_workaround
+    attributes:
+      label: Solution actuelle
+      description: Comment gérez-vous ce besoin aujourd'hui ?
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Résultat souhaité
+      description: Expliquez le parcours attendu, notamment les approbations nécessaires.
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risque estimé
+      options:
+        - R0 - Lecture seule
+        - R1 - Création locale additive
+        - R2 - Modification locale existante
+        - R3 - Action distante, publique ou destructive
+        - Je ne sais pas
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives envisagées
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Vérification
+      options:
+        - label: La proposition ne contient aucun secret ni information privée.
+          required: true

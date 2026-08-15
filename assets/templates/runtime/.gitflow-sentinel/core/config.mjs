@@ -74,6 +74,61 @@ export const DEFAULTS = {
   overrideMarker: "GITFLOW_OVERRIDE=explicit",
 };
 
+const TRI_STATE = new Set(["off", "warn", "block"]);
+
+export function validateConfig(input) {
+  const errors = [];
+  const add = (field, message) => errors.push({ field, message });
+  const string = (field, value, { allowEmpty = false } = {}) => {
+    if (typeof value !== "string" || (!allowEmpty && !value.trim())) add(field, "must be a non-empty string");
+  };
+  const stringArray = (field, value, { allowEmpty = false } = {}) => {
+    if (!Array.isArray(value) || (!allowEmpty && value.length === 0) || value.some((v) => typeof v !== "string" || !v.trim())) {
+      add(field, `must be ${allowEmpty ? "an" : "a non-empty"} array of non-empty strings`);
+    }
+  };
+
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return [{ field: "$", message: "must be a JSON object" }];
+  }
+  if (input.version !== undefined && (!Number.isInteger(input.version) || input.version < 1)) add("version", "must be a positive integer");
+  for (const field of ["stableBranch", "integrationBranch", "legacyBranch", "policyDocPath", "overrideMarker"]) {
+    if (input[field] !== undefined) string(field, input[field]);
+  }
+  for (const field of ["protectedBranches", "shortBranchPrefixes"]) {
+    if (input[field] !== undefined) stringArray(field, input[field]);
+  }
+  if (input.commitTypes !== undefined && input.commitTypes !== null) stringArray("commitTypes", input.commitTypes);
+  for (const field of ["secretsGuard", "worktreesAllowed", "delegateScanners"]) {
+    if (input[field] !== undefined && typeof input[field] !== "boolean") add(field, "must be a boolean");
+  }
+  for (const field of ["conventionalCommits", "historyProtection", "tagProtection"]) {
+    const value = input[field];
+    if (value !== undefined && typeof value !== "boolean" && !TRI_STATE.has(value)) {
+      add(field, 'must be true, false, "off", "warn", or "block"');
+    }
+  }
+  if (input.worktreeRoot !== undefined) string("worktreeRoot", input.worktreeRoot, { allowEmpty: true });
+  if (input.prRoutes !== undefined) {
+    if (!input.prRoutes || typeof input.prRoutes !== "object" || Array.isArray(input.prRoutes)) {
+      add("prRoutes", "must be an object mapping base branches to head patterns");
+    } else {
+      for (const [base, heads] of Object.entries(input.prRoutes)) {
+        if (!base.trim()) add("prRoutes", "base branch names must not be empty");
+        stringArray(`prRoutes.${base}`, heads, { allowEmpty: true });
+      }
+    }
+  }
+
+  const merged = deepMerge(DEFAULTS, input);
+  if (Array.isArray(merged.protectedBranches)) {
+    for (const branch of [merged.stableBranch, merged.integrationBranch]) {
+      if (branch && !merged.protectedBranches.includes(branch)) add("protectedBranches", `must include ${branch}`);
+    }
+  }
+  return errors;
+}
+
 // Normalize a tri-state knob that also accepts booleans, to "off" | "warn" |
 // "block". Keeps old boolean configs working while enabling the stricter modes.
 export function triState(value, fallback = "warn") {
@@ -125,13 +180,28 @@ export function configPath(projectRoot) {
 // JSON file falls back to defaults rather than crashing a hook mid-command.
 export function loadConfig(projectRoot = ".") {
   const file = configPath(projectRoot);
-  if (!existsSync(file)) return { ...DEFAULTS, _source: "defaults" };
+  if (!existsSync(file)) return { ...DEFAULTS, _source: "defaults", _valid: true, _errors: [] };
   try {
     const user = JSON.parse(readFileSync(file, "utf8"));
-    return { ...deepMerge(DEFAULTS, user), _source: "file" };
+    const errors = validateConfig(user);
+    if (errors.length) {
+      return { ...DEFAULTS, _source: "defaults (invalid config)", _valid: false, _errors: errors };
+    }
+    return { ...deepMerge(DEFAULTS, user), _source: "file", _valid: true, _errors: [] };
   } catch (error) {
-    return { ...DEFAULTS, _source: `defaults (invalid config: ${error.message})` };
+    return {
+      ...DEFAULTS,
+      _source: "defaults (invalid config)",
+      _valid: false,
+      _errors: [{ field: "$", message: error.message }],
+    };
   }
+}
+
+export function assertValidConfig(config) {
+  if (config?._valid !== false) return config;
+  const detail = (config._errors || []).map((e) => `${e.field}: ${e.message}`).join("; ");
+  throw new Error(`Invalid .gitflow-sentinel.json${detail ? ` (${detail})` : ""}. Fix it before continuing.`);
 }
 
 export function commitTypes(config) {

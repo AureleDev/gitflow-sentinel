@@ -70,6 +70,13 @@ function main() {
   const checks = [];
   const problem = (code, msg, detail = "") => findings.push({ severity: "problem", code, msg, detail });
   const warn = (code, msg, detail = "") => findings.push({ severity: "warning", code, msg, detail });
+  if (config._valid === false) {
+    problem(
+      "CONFIG_INVALID",
+      ".gitflow-sentinel.json is invalid; policy operations fail closed until it is repaired.",
+      (config._errors || []).map((error) => `${error.field}: ${error.message}`).join("; "),
+    );
+  }
 
   // --- Git state ---
   if (args.skipGitReadiness) checks.push({ id: "CHECK 0-4", label: "git branch/sync state", status: "SKIPPED", detail: "already checked earlier in this run" });
@@ -130,16 +137,6 @@ function main() {
 
   for (const f of ["AGENTS.md", "CONTRIBUTING.md"]) {
     if (!existsSync(path.join(root, f))) warn("ADVISORY_MISSING", `Project-facing doc absent: ${f}`);
-  }
-
-  // Codex's PreToolUse/SessionStart/Stop hooks are an experimental, opt-in
-  // feature (requires [features] codex_hooks = true in ~/.codex/config.toml)
-  // and, as of this writing, are not available on Windows at all. Wiring
-  // .codex/hooks.json is harmless either way, but a repo relying on it as the
-  // *only* enforcement layer on Windows (or with hooks not enabled) would
-  // silently have no agent-side guard — only the native git layer would hold.
-  if (hasCodex && process.platform === "win32") {
-    warn("CODEX_HOOKS_WINDOWS", "Codex CLI hooks are experimental and not available on Windows; the agent layer for Codex may not fire here.", "the native git layer (pre-commit/pre-push) still enforces regardless — see references/platform-adapters.md");
   }
 
   // Coexistence with an earlier, per-project generation of this same idea

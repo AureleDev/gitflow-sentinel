@@ -14,7 +14,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const FILE = path.join(HERE, "..", "evals", "evals.json");
+const ROOT = path.resolve(HERE, "../..");
+const FILE = path.join(ROOT, "evals", "evals.json");
 
 const REQUIRED_EVAL_FIELDS = ["id", "name", "prompt", "expected_output", "assertions"];
 
@@ -59,6 +60,6 @@ for (const [i, e] of (doc.evals || []).entries()) {
 if (process.exitCode === 1) {
   console.error(`\n${FILE} failed validation.`);
 } else {
-  console.log(`OK: ${doc.evals.length} eval case(s) in ${path.relative(path.join(HERE, ".."), FILE)} are well-formed.`);
+  console.log(`OK: ${doc.evals.length} eval case(s) in ${path.relative(ROOT, FILE)} are well-formed.`);
   console.log("Note: this only checks structure. Running the cases against a live agent requires a skill-eval harness (e.g. bmad-eval-runner) — this script does not do that.");
 }

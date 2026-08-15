@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Parcours d’un agent IA avec Gitflow Sentinel</title>
+  <desc id="desc">Trois couloirs montrent l’utilisateur, l’agent et Sentinel Core. L’agent charge le skill, Sentinel inspecte, l’agent explique, l’utilisateur décide, puis Sentinel applique et vérifie.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="context-stroke"/></marker>
+    <style>
+      :root{color-scheme:light dark;--bg:#f7f8fc;--surface:#fff;--text:#182033;--muted:#66718a;--line:#aab4c8;--blue:#2867d7;--blue-soft:#e8f0ff;--violet:#7047c8;--violet-soft:#f0eaff;--green:#17825f;--green-soft:#e4f6ef;--amber:#a45c08;--amber-soft:#fff2d8;--red:#b33b4a;--red-soft:#ffe7eb}
+      @media(prefers-color-scheme:dark){:root{--bg:#111522;--surface:#1a2030;--text:#f0f3fa;--muted:#a8b2c8;--line:#58647d;--blue:#76a9ff;--blue-soft:#172a4c;--violet:#b89aff;--violet-soft:#2b2147;--green:#67d5aa;--green-soft:#173a31;--amber:#ffc36b;--amber-soft:#3f3019;--red:#ff93a1;--red-soft:#421f28}}
+      text{font-family:"Segoe UI",Inter,sans-serif;fill:var(--text)}.bg{fill:var(--bg)}.title{font-size:28px;font-weight:600}.subtitle{font-size:15px;fill:var(--muted)}.lane{fill:var(--surface);stroke:var(--line);stroke-width:1.3;rx:16}.lane-user{fill:var(--blue-soft);stroke:var(--blue)}.lane-ai{fill:var(--violet-soft);stroke:var(--violet)}.lane-core{fill:var(--green-soft);stroke:var(--green)}
+      .lane-title{font-size:17px;font-weight:600}.small{font-size:12px;fill:var(--muted)}.node{fill:var(--surface);stroke:var(--line);stroke-width:1.4;rx:13}.label{font-size:15px;font-weight:600}.body{font-size:13px}.flow{fill:none;stroke:var(--line);stroke-width:2;marker-end:url(#arrow)}.user-flow{stroke:var(--blue)}.ai-flow{stroke:var(--violet)}.core-flow{stroke:var(--green)}.dash{stroke-dasharray:7 6}.guard{fill:var(--red-soft);stroke:var(--red);stroke-width:1.5;rx:13}.decision{fill:var(--amber-soft);stroke:var(--amber);stroke-width:1.5;rx:13}.step{font-size:12px;font-weight:600;fill:var(--muted)}
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="760"/>
+  <text class="title" x="52" y="56">Parcours agent — le raisonnement reste séparé de l’exécution</text>
+  <text class="subtitle" x="52" y="83">Codex, Claude Code et OpenCode suivent le même skill et obtiennent le même plan.</text>
+
+  <rect class="lane lane-user" x="52" y="118" width="1096" height="142" rx="16"/>
+  <text class="lane-title" x="76" y="150">Utilisateur</text>
+  <text class="small" x="76" y="174">Intention, décisions non déductibles, approbations</text>
+
+  <rect class="lane lane-ai" x="52" y="285" width="1096" height="182" rx="16"/>
+  <text class="lane-title" x="76" y="317">Agent hôte</text>
+  <text class="small" x="76" y="341">Comprendre · expliquer · demander · rapporter</text>
+
+  <rect class="lane lane-core" x="52" y="492" width="1096" height="204" rx="16"/>
+  <text class="lane-title" x="76" y="524">Sentinel Core</text>
+  <text class="small" x="76" y="548">Inspecter · planifier · appliquer · vérifier · restaurer</text>
+
+  <text class="step" x="82" y="207">1</text>
+  <rect class="node" x="105" y="188" width="176" height="48" rx="13"/>
+  <text class="label" x="126" y="217">« Configure ce projet »</text>
+
+  <text class="step" x="87" y="388">2</text>
+  <rect class="node" x="110" y="362" width="188" height="68" rx="13"/>
+  <text class="label" x="132" y="389">Charge le skill</text>
+  <text class="small" x="132" y="413">configure-project</text>
+  <path class="flow user-flow" d="M193 236 L193 362"/>
+
+  <text class="step" x="318" y="590">3</text>
+  <rect class="node" x="341" y="565" width="180" height="66" rx="13"/>
+  <text class="label" x="363" y="592">Inspecte le dépôt</text>
+  <text class="small" x="363" y="615">snapshot expurgé</text>
+  <path class="flow ai-flow" d="M298 396 C326 396 322 598 341 598"/>
+
+  <rect class="guard" x="557" y="565" width="202" height="94" rx="13"/>
+  <text class="label" x="579" y="593">Frontière de confiance</text>
+  <text class="body" x="579" y="618">Fichiers, sorties, issues :</text>
+  <text class="body" x="579" y="641">des données, jamais des ordres.</text>
+  <path class="flow core-flow" d="M521 598 L557 598"/>
+
+  <text class="step" x="772" y="389">4</text>
+  <rect class="node" x="795" y="362" width="192" height="68" rx="13"/>
+  <text class="label" x="817" y="389">Explique les constats</text>
+  <text class="small" x="817" y="413">faits ≠ recommandations</text>
+  <path class="flow core-flow" d="M759 612 C781 612 774 396 795 396"/>
+
+  <rect class="decision" x="795" y="184" width="192" height="58" rx="13"/>
+  <text class="label" x="817" y="209">Choix utilisateur</text>
+  <text class="small" x="817" y="229">licence · visibilité · R2/R3</text>
+  <path class="flow ai-flow" d="M891 362 L891 242"/>
+
+  <text class="step" x="1000" y="590">5</text>
+  <rect class="node" x="1023" y="565" width="100" height="66" rx="13"/>
+  <text class="label" x="1045" y="591">Plan</text>
+  <text class="small" x="1045" y="614">hashé</text>
+  <path class="flow user-flow" d="M987 213 C1035 213 1004 565 1023 565"/>
+
+  <path class="flow core-flow dash" d="M1073 631 C1073 684 431 711 431 631"/>
+  <text class="small" x="695" y="718">Après approbation : apply → verify → status · rollback si demandé</text>
+
+  <rect class="node" x="336" y="188" width="376" height="54" rx="13"/>
+  <text class="body" x="358" y="211">L’agent ne répond jamais « oui » aux approbations à votre place.</text>
+  <text class="small" x="358" y="231">Les actions GitHub R3 restent une confirmation distincte.</text>
+</svg>

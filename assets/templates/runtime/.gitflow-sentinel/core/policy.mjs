@@ -7,9 +7,10 @@
 //
 // Override discipline: the override marker can sanction a routine, deliberate
 // action (a one-off direct commit, a sanctioned merge). It can NEVER be used to
-// commit a secret, to run `--no-verify`, or to reconfigure core.hooksPath —
-// those would let an agent disable the safety system itself, which defeats the
-// point. Those three rules ignore hasOverride on purpose.
+// commit a secret, to run `--no-verify`, or to reconfigure core.hooksPath.
+// Direct-edit payloads also have no portable, auditable marker channel. These
+// four rules ignore hasOverride on purpose. They preserve local feedback; CI
+// and remote rules remain the shared enforcement authority.
 import * as P from "./parser.mjs";
 import {
   isProtected, isShortBranch, headMatchesRoute, commitTypes, conventionalCommitRegex,
@@ -27,7 +28,15 @@ function levelFor(mode) {
 }
 
 export function evaluate(ctx) {
-  const { config, state, toolName = "", segments = [], hasOverride = false, stagedDiff = "" } = ctx;
+  const {
+    config,
+    state,
+    toolName = "",
+    directEditInWorktree = true,
+    segments = [],
+    hasOverride = false,
+    stagedDiff = "",
+  } = ctx;
   const out = [];
   if (!state?.isRepo) return out;
 
@@ -42,13 +51,13 @@ export function evaluate(ctx) {
   // other people even though it is not a "protected" branch.
   const sharedBranch = Boolean(state.upstream) || state.ahead || state.behind;
 
-  // 1. Direct file edits (apply_patch/edit/write) on a protected branch. These
-  //    never go through git, so the command guards below would miss them.
-  if (onProtected && !hasOverride && P.isDirectEditTool(toolName)) {
+  // 1. Direct file edits (apply_patch/edit/write) targeting this worktree on a
+  //    protected branch. Project-external targets belong to their own policy.
+  if (onProtected && directEditInWorktree && P.isDirectEditTool(toolName)) {
     out.push(decision("block", "DIRECT_EDIT_PROTECTED",
       `Direct file edits on ${branch} are blocked.`, [
         `Create a short branch from clean ${integration} before editing files.`,
-        `For a sanctioned one-off, include ${marker} in the tool input with a reason.`,
+        "Direct-edit payloads have no auditable override channel; use a short branch instead.",
       ]));
   }
 
@@ -58,7 +67,8 @@ export function evaluate(ctx) {
     if (P.disablesHooks(seg)) {
       out.push(decision("block", "NO_VERIFY",
         "Bypassing git hooks with --no-verify is not allowed.", [
-          "The native hooks are the real enforcement layer; --no-verify disables all of them.",
+          "Native hooks provide local defense in depth; --no-verify disables that early feedback.",
+          "Required CI and remote rules remain the shared enforcement authority.",
           "Remove --no-verify. If a hook is wrong, fix the policy in .gitflow-sentinel.json.",
         ]));
     }
@@ -212,6 +222,10 @@ export function evaluate(ctx) {
       } else if (pr.base === config.legacyBranch) {
         out.push(decision("block", "PR_TO_LEGACY", `PRs to ${config.legacyBranch} are blocked.`, [
           `Normalize the stable branch to ${stable}, then use ${integration} -> ${stable}.`,
+        ]));
+      } else if (!Object.prototype.hasOwnProperty.call(config.prRoutes, pr.base)) {
+        out.push(decision("block", "PR_UNKNOWN_BASE", `PR base ${pr.base} has no declared route.`, [
+          "Declare the route in .gitflow-sentinel.json before opening this PR.",
         ]));
       } else if (config.prRoutes[pr.base] && !headMatchesRoute(config.prRoutes[pr.base], head)) {
         out.push(decision("block", "PR_ROUTE", `PR to ${pr.base} cannot come from ${head}.`, [

@@ -7,6 +7,7 @@
 import { existsSync, readFileSync, readdirSync, rmSync, rmdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { git, isFailure, readJsonSafe, nextValue, resolveProjectRoot } from "./lib.mjs";
+import { hashFile } from "./core/contracts.mjs";
 
 function parseArgs(argv) {
   const args = { projectRoot: ".", apply: false };
@@ -91,20 +92,35 @@ function main() {
   stripManaged(path.join(root, ".gitattributes"), actions);
   cleanPrepare(path.join(root, "package.json"), actions);
 
-  // Manifest-driven removal of the remaining managed files we created (e.g.
-  // .codex/rules/git-safety.rules, the CI workflow, the config), but never the
-  // project-facing docs, which may carry user edits (left for manual review).
+  // Manifest-driven removal of files we created. A file changed after install
+  // is preserved rather than silently deleted or overwritten.
   const ADVISORY = new Set(["AGENTS.md", "CLAUDE.md", "CONTRIBUTING.md", ".github/PULL_REQUEST_TEMPLATE.md"]);
   const HANDLED = new Set([".claude/settings.json", ".codex/hooks.json", ".gitignore", ".gitattributes"]);
+  let keepRuntime = false;
   for (const [rel, info] of Object.entries(manifest.files || {})) {
-    if (!["create", "update-managed"].includes(info.action)) continue;
-    if (rel.startsWith(".gitflow-sentinel/")) continue; // removed with the runtime dir
-    if (ADVISORY.has(rel) || HANDLED.has(rel)) continue;
     const f = path.join(root, rel);
+    if (HANDLED.has(rel)) continue;
+    if (info.afterHash && existsSync(f) && hashFile(f) !== info.afterHash) {
+      actions.push({ kind: "preserve", file: f, reason: "changed after Sentinel installed it" });
+      if (rel.startsWith(".gitflow-sentinel/")) keepRuntime = true;
+      continue;
+    }
+    if (info.action === "replace-with-backup" && info.backup) {
+      const backup = path.join(root, info.backup);
+      if (existsSync(backup)) actions.push({ kind: "restore", file: f, backup });
+      if (rel.startsWith(".gitflow-sentinel/")) keepRuntime = true;
+      continue;
+    }
+    if (!["create", "update-managed"].includes(info.action)) continue;
+    if (ADVISORY.has(rel) && !info.afterHash) continue; // compatibility with old manifests
+    if (rel.startsWith(".gitflow-sentinel/")) {
+      if (existsSync(f)) actions.push({ kind: "delete", file: f });
+      continue;
+    }
     if (existsSync(f)) actions.push({ kind: "delete", file: f });
   }
 
-  actions.push({ kind: "rmdir", dir: path.join(root, ".gitflow-sentinel") });
+  if (!keepRuntime) actions.push({ kind: "rmdir", dir: path.join(root, ".gitflow-sentinel") });
 
   console.log("gitflow-sentinel uninstall");
   console.log(`Mode: ${args.apply ? "apply" : "dry-run"}\n`);
@@ -112,6 +128,8 @@ function main() {
     if (a.kind === "rmdir") console.log(`- remove directory: ${path.relative(root, a.dir)}/`);
     else if (a.kind === "hookspath") console.log(`- core.hooksPath: ${a.restore ? `restore to '${a.restore}'` : "unset"}`);
     else if (a.kind === "delete") console.log(`- delete: ${path.relative(root, a.file)}`);
+    else if (a.kind === "restore") console.log(`- restore: ${path.relative(root, a.file)} from ${path.relative(root, a.backup)}`);
+    else if (a.kind === "preserve") console.log(`- preserve: ${path.relative(root, a.file)} (${a.reason})`);
     else console.log(`- rewrite: ${path.relative(root, a.file)}`);
   }
 
@@ -123,7 +141,9 @@ function main() {
 
   for (const a of actions) {
     if (a.kind === "rewrite") writeFileSync(a.file, a.content, "utf8");
+    else if (a.kind === "restore") writeFileSync(a.file, readFileSync(a.backup));
     else if (a.kind === "delete") { if (existsSync(a.file)) rmSync(a.file, { force: true }); }
+    else if (a.kind === "preserve") { /* user-modified file intentionally left in place */ }
     else if (a.kind === "rmdir") { if (existsSync(a.dir)) rmSync(a.dir, { recursive: true, force: true }); }
     else if (a.kind === "hookspath") {
       if (a.restore) git(root, ["config", "--local", "core.hooksPath", a.restore]);

@@ -1,0 +1,36 @@
+{
+  "name": "gitflow-sentinel",
+  "version": "0.0.3-alpha.2",
+  "description": "Inspect and safely configure complete project foundations through immutable plans and reversible transactions.",
+  "author": {
+    "name": "Aurele Gnonlonfoun",
+    "url": "https://github.com/AureleDev"
+  },
+  "repository": "https://github.com/AureleDev/gitflow-sentinel",
+  "license": "MIT",
+  "keywords": [
+    "project-setup",
+    "git",
+    "github",
+    "ci",
+    "security",
+    "agent-skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Gitflow Sentinel",
+    "shortDescription": "Plan and configure project foundations safely.",
+    "longDescription": "A cross-agent project-foundation orchestrator with inspection, immutable plans, explicit risk approvals, verification, and local rollback.",
+    "developerName": "Aurele Gnonlonfoun",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Inspect this project and prepare a safe setup plan.",
+      "Verify this repository's project foundations.",
+      "Plan a reversible GitHub and CI configuration."
+    ]
+  }
+}

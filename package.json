@@ -1,7 +1,7 @@
 {
   "name": "gitflow-sentinel",
-  "version": "2.1.0",
-  "description": "Framework-agnostic Git/GitHub branch-policy guardrails for humans and AI coding agents: protected branches, PR routing, secret and bypass blocking, with native git hooks and optional server-side GitHub protection.",
+  "version": "0.0.3-alpha.2",
+  "description": "Cross-agent project-foundation orchestrator with inspection, immutable plans, transactional apply/rollback, Git policy, CI, documentation, security, and GitHub adapters.",
   "type": "module",
   "bin": {
     "gitflow-sentinel": "scripts/cli.mjs"
@@ -11,6 +11,14 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AureleDev/gitflow-sentinel.git"
+  },
+  "homepage": "https://github.com/AureleDev/gitflow-sentinel#readme",
+  "bugs": {
+    "url": "https://github.com/AureleDev/gitflow-sentinel/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
   },
   "keywords": [
     "git",
@@ -31,18 +39,26 @@
     "node": ">=18"
   },
   "scripts": {
+    "bootstrap": "node scripts/bootstrap.mjs",
     "doctor": "node scripts/doctor.mjs",
-    "verify": "node scripts/verify.mjs",
+    "test": "node --test",
+    "verify": "node tools/validation/verify-policy.mjs && node --test",
+    "verify:foundations": "node scripts/foundation-verify.mjs --project-root .",
     "install:guardrails": "node scripts/orchestrate.mjs",
-    "validate:evals": "node scripts/validate-evals.mjs"
+    "validate:evals": "node tools/validation/validate-evals.mjs",
+    "validate:package": "node tools/validation/validate-package.mjs",
+    "validate:self-host": "node tools/validation/validate-self-host.mjs",
+    "validate:projects": "node tools/validation/validate-project-matrix.mjs"
   },
   "files": [
     "SKILL.md",
-    "scripts/",
+    "scripts/*.mjs",
+    "scripts/core/",
     "references/",
     "assets/",
     "agents/",
-    "evals/",
+    "skills/",
+    ".codex-plugin/",
     "LICENSE",
     "CHANGELOG.md"
   ],

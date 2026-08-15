@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "gitflow-sentinel://schemas/desired-state-v1",
+  "title": "Sentinel desired project state",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "schemaVersion",
+    "profile",
+    "project",
+    "vcs",
+    "agents",
+    "github",
+    "quality",
+    "modules"
+  ],
+  "properties": {
+    "kind": {
+      "const": "gitflow-sentinel/desired-state"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "profile": {
+      "enum": [
+        "minimal",
+        "standard",
+        "hardened",
+        "custom"
+      ]
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "visibility",
+        "description",
+        "license"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "visibility": {
+          "enum": [
+            "private",
+            "public",
+            "internal"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "vcs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "strategy",
+        "stableBranch",
+        "integrationBranch",
+        "legacyBranch",
+        "protectedBranches"
+      ],
+      "properties": {
+        "provider": {
+          "const": "github"
+        },
+        "strategy": {
+          "enum": [
+            "trunk",
+            "git-flow"
+          ]
+        },
+        "stableBranch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "integrationBranch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "legacyBranch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "protectedBranches": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "agents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "codex",
+              "claude",
+              "opencode"
+            ]
+          }
+        }
+      }
+    },
+    "github": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "createRepository",
+        "owner",
+        "reviewers",
+        "manageRuleset"
+      ],
+      "properties": {
+        "createRepository": {
+          "type": "boolean"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "reviewers": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "manageRuleset": {
+          "type": "boolean"
+        }
+      }
+    },
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verifiedCommands"
+      ],
+      "properties": {
+        "verifiedCommands": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\r\\n\\u0000]+$"
+          }
+        }
+      }
+    },
+    "modules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "git",
+              "git-policy",
+              "github",
+              "agents",
+              "docs",
+              "quality",
+              "ci",
+              "security",
+              "dependencies",
+              "release"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "profile": {
+            "const": "custom"
+          }
+        },
+        "required": [
+          "profile"
+        ]
+      },
+      "then": {
+        "properties": {
+          "modules": {
+            "properties": {
+              "enabled": {
+                "contains": {
+                  "const": "git"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

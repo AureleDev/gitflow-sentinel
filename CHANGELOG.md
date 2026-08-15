@@ -4,6 +4,125 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+## [0.0.3-alpha.2] — 2026-08-15
+
+### Added
+
+- Public-review onboarding, issue forms, contribution guidance and a practical
+  alpha review guide.
+- Cross-host interaction guidance recommending Plan mode and structured
+  questions when available, with a plain-text fallback that never invents user
+  decisions.
+- The WithHuman Labs field report and an explicit public list of the remaining
+  Git Flow, initial synchronization, CI-evidence and private-ruleset limits.
+
+### Fixed
+
+- Test discovery no longer relies on shell glob expansion, which failed on
+  Windows with Node.js 18 in GitHub Actions.
+- GitHub inspection now tolerates normal authenticated CLI latency instead of
+  reporting a connected repository as absent after five seconds.
+- Plan and quality-check fingerprints now include the bytes and modes of
+  already dirty tracked and untracked paths, plus staged index state, so edits
+  cannot reuse an approval merely because `git status` still lists the same
+  filenames.
+
+## [0.0.3-alpha.1] — 2026-08-10
+
+### Added
+
+- An explicit one-command bootstrap now installs both the global CLI and the
+  portable agent skill without relying on implicit npm lifecycle scripts.
+- Claude Code now has a documented deterministic `/configure-project`
+  fallback; natural skill selection is no longer presented as guaranteed by
+  every host model.
+- Compact JSON review surfaces for setup and plans, plus compact status and
+  verification actions that omit generated file bodies.
+- CLI `--version` support.
+- Visual atlas covering the product architecture, human and agent journeys,
+  project lifecycle, transaction safety, supported agents and the role of WSL.
+- Guided `gitflow-sentinel setup` flow for inspect, explain, approve, apply and
+  immediate local verification in one command.
+- One-time `gitflow-sentinel ai install` skill distribution for Codex, Claude
+  Code and OpenCode, with idempotent updates and unmanaged-conflict refusal.
+- Python project detection from bounded source-file signals when no package
+  manifest exists.
+- Sentinel Core contracts, redacted project inspection and deterministic
+  desired-state planning.
+- Bounded recursive workspace detection for nested TypeScript, Python `uv`,
+  package managers and monorepos, excluding generated agent worktrees.
+- Local-only inspection by default with explicit `--remote`/`--offline`
+  provider modes and bounded provider command timeouts.
+- Immutable plan hashes, stale-plan preconditions, atomic local transactions,
+  exact-byte backups, resume and rollback.
+- Inter-process transaction locks, greenfield bootstrap journals, file metadata
+  restoration and secret-safe backup refusal.
+- Windows long-path detection and repository-local configuration, plus exact
+  preservation of pre-existing empty parent directories during rollback.
+- State-bound, explicitly approved quality checks whose output is never stored;
+  CI generation now requires current verification evidence.
+- Executable module lifecycle registry for planning, application, verification,
+  rollback and uninstall boundaries.
+- Public `inspect`, `init`, `plan`, `apply`, `verify`, `status`, `rollback`,
+  `resume` and `update` commands.
+- Foundation modules for Git, GitHub, agent guidance, documentation, quality,
+  CI, security, dependencies and release preparation.
+- Portable `configure-project` Agent Skill and Codex plugin packaging.
+- Greenfield, brownfield, idempotence, stale-state and rollback integration
+  coverage.
+
+### Changed
+
+- Version nomenclature now starts at `0.0.3-alpha.1` to communicate that the
+  product is experimental and has not reached its first stable release.
+- Prerelease publication defaults to the public npm `next` dist-tag, matching
+  the documented one-command installation path.
+- Internal validation programs now live under `tools/validation/`, while dated
+  execution evidence lives under repository-only `docs/validation/`.
+- The npm package now includes an explicit runtime surface and excludes tests,
+  eval cases, validation tools and machine-specific evidence.
+- The portable skill now routes natural configuration requests directly to a
+  bounded Sentinel preview before broad project-document discovery.
+- The standard profile now keeps the historical local Git-policy runtime
+  optional; it remains available through `hardened` or a custom profile.
+- Existing agent directories are selected automatically when no explicit agent
+  list is supplied.
+- Git policy is now one module in a general project-foundation orchestrator.
+- GitHub protection uses a dedicated additive ruleset and verifies the result.
+- Invalid configuration fails closed and is never replaced automatically.
+- Local agent and Git hooks are documented accurately as defense in depth.
+
+### Fixed
+
+- Approved npm quality commands now execute through Windows `.cmd` shims
+  without enabling a general shell or allowing argument metacharacter injection.
+- Direct-edit policy now evaluates resolved target paths and ignores writes
+  outside the current worktree instead of blocking solely on the tool name.
+- Direct-edit messages no longer advertise an unreachable override channel.
+- Shell-write detection uses parsed command positions, exempts `/dev/null`,
+  `nul` and `$null`, and no longer treats writer names inside arguments as writes.
+- Claude Code hook wiring now matches every tool so a newly added shell cannot
+  silently bypass the guard.
+- The Stop hook is advisory and cannot trap an agent in an unbounded loop.
+- Runtime and package versions are aligned, with SessionStart drift reporting.
+- A root `package.json` without a lockfile now defaults to npm, while an
+  explicit `packageManager` field remains authoritative; npm Dependabot is no
+  longer omitted from such projects.
+- Managed blocks in `.gitignore` and `.gitattributes` use valid `#` comments
+  and migrate prior HTML markers without creating duplicates.
+- Guided setup distinguishes locally compliant foundations from GitHub state
+  that was not queried.
+
+### Security
+
+- Plans exclude prior file contents and secret values.
+- Paths, symbolic links, approvals and local/remote preconditions are checked
+  before mutation.
+- Unknown pull-request routes and global `gh --repo … pr merge` forms fail
+  safely.
+
 ## [2.1.0] — 2026-07-26
 
 Windows-compatibility and coexistence-with-the-past hardening pass, plus
@@ -27,7 +146,8 @@ installer/CLI ergonomics. No config schema changes.
   <doctor|install|verify|uninstall|orchestrate|github-protect>` once installed,
   instead of needing this repo's absolute path.
 - `evals/evals.json` is now shipped in the published package (`files`) and has
-  a structural validator (`npm run validate:evals` / `scripts/validate-evals.mjs`).
+  a structural validator (`npm run validate:evals` /
+  `tools/validation/validate-evals.mjs`).
 - `README.md`: explicit "installing as a skill" steps and a migration pointer;
   `references/migration.md` is new.
 

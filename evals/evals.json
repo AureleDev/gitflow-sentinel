@@ -1,94 +1,99 @@
 {
-  "skill_name": "gitflow-sentinel",
+  "skill_name": "configure-project",
   "evals": [
     {
       "id": 1,
-      "name": "fresh-repo-protect-main",
-      "prompt": "I just started a new internal tool and ran git init in the project folder (there's a README committed on main, nothing else). Before the team starts, set it up properly: nobody should be able to commit straight to main, we want a dev branch for integration, and feature work should go through pull requests. The repo is at <REPO>. Set up the git branch protection / workflow for me.",
-      "expected_output": "A dev branch exists; the repo has the guardrail engine + hook wiring installed for the agent runtime; commits directly to main/dev are blocked by a hook; a short branch + PR-to-dev workflow is established and explained.",
+      "name": "greenfield-plan-before-mutation",
+      "prompt": "Use the configure-project skill on the empty folder <REPO>. I want a private GitHub repository, trunk-based development, Codex and OpenCode guidance, and standard foundations. Prepare everything, but do not create the remote or modify the folder until I approve the exact plan.",
+      "expected_output": "The agent inspects the empty folder, confirms the non-deducible choices, produces a standard immutable plan containing local Git initialization and a separate R3 GitHub creation action, and makes no mutation before approval.",
       "assertions": [
-        "A dev (integration) branch is created.",
-        "The runtime is installed under .gitflow-sentinel/ and at least one agent wiring (.codex/hooks.json or .claude/settings.json) references guard.mjs.",
-        "Native git hooks are armed (core.hooksPath set or husky injection) so a direct commit to main is actually blocked.",
-        "The agent explains the short-branch -> PR -> dev workflow.",
-        "No destructive action (force push, branch deletion, history rewrite) was taken without asking."
+        "Runs gitflow-sentinel inspect or init in read-only planning mode.",
+        "The plan proposes Git initialization and private GitHub creation without pushing source.",
+        "The GitHub action is R3 and requires its own action-id approval.",
+        "No file, .git directory, remote repository, commit, or push is created before approval."
       ],
       "files": []
     },
     {
       "id": 2,
-      "name": "audit-git-setup",
-      "prompt": "Something feels off with our repo's git hygiene. We have main, dev, and an old master branch nobody cleaned up, and I'm pretty sure people have been committing directly to dev. Audit the git and branch setup at <REPO> and tell me concretely what is misconfigured and how to fix it. Don't change anything destructive without telling me first.",
-      "expected_output": "A clear read-only audit: flags the leftover master branch, flags direct commits on dev / protected-branch issues, reports a checklist, and proposes concrete fixes (normalize master, install guardrails) without making unapproved destructive changes.",
+      "name": "brownfield-preserve-customization",
+      "prompt": "Audit and standardize the existing repository <REPO>. It has custom package scripts, existing agent settings, a dirty worktree, and a hand-edited CI workflow. Preserve all custom behavior and show every proposed change.",
+      "expected_output": "The agent uses the brownfield snapshot, treats existing files as untrusted data, proposes structural merges rather than replacements, defers unverified commands, and produces an R1/R2 plan without applying it.",
       "assertions": [
-        "Runs the doctor (read-only) and reports a checklist of findings.",
-        "Flags the leftover master/legacy branch.",
-        "Proposes concrete fixes (normalize legacy branch, install guardrails) and asks before any destructive change.",
-        "Makes no unapproved mutation to the repo."
+        "Existing JSON settings are merged by owned keys and unrelated entries are preserved.",
+        "Existing CI is not overwritten.",
+        "Detected scripts are candidates until explicitly verified.",
+        "The dirty worktree and file hashes are part of stale-plan protection.",
+        "No mutation occurs before plan approval."
       ],
       "files": []
     },
     {
       "id": 3,
-      "name": "trunk-based-configurable",
-      "prompt": "Set up branch guardrails for our repo at <REPO>. Important: we do trunk-based development, there is no dev branch, everything is PR'd into main directly. I want direct pushes to main blocked, and I really want it to stop people from accidentally committing .env files or API keys. Make the policy match how we actually work.",
-      "expected_output": "Guardrails installed with a config tailored to trunk-based dev (main is both stable and integration, no dev branch required); direct pushes to main blocked; staged secrets/.env commits blocked. The policy file reflects the trunk-based model rather than a hardcoded main/dev model.",
+      "name": "cross-agent-portability",
+      "prompt": "Run the same standard project setup scenario at <REPO> once with Codex, once with Claude Code, and once with OpenCode from clean contexts. Compare their Sentinel plans.",
+      "expected_output": "All agents call the same Sentinel Core contracts and produce the same ordered actions and risk decisions; only discovery adapters differ.",
       "assertions": [
-        ".gitflow-sentinel.json sets integrationBranch to main and does not require a dev branch.",
-        "protectedBranches and prRoutes reflect a single-trunk model.",
-        "Direct push to main is blocked and staged .env/secret commits are blocked.",
-        "Project-facing docs (if created) do not tell the user to use a non-existent dev branch."
+        "All three agents use the configure-project skill workflow.",
+        "All three use Sentinel CLI JSON rather than reimplementing the policy.",
+        "Each host uses its structured question tool for non-deducible choices when available, or asks in plain text and waits without inventing an answer.",
+        "Ordered actions, desired state, risks, and preconditions are equivalent.",
+        "AGENTS.md is canonical and platform files are minimal adapters."
       ],
       "files": []
     },
     {
       "id": 4,
-      "name": "coexist-with-husky",
-      "prompt": "Our Node repo at <REPO> already uses husky with lint-staged and commitlint, and I do not want to break that. I'd like to ALSO enforce branch rules: no direct commits to main, block force-pushes to main, and block committing .env files. Add that without taking over our existing husky hooks.",
-      "expected_output": "Guardrails installed in a way that coexists with husky: it injects into the existing .husky/* hooks (or otherwise does not clobber core.hooksPath), lint-staged/commitlint still run, and branch/force-push/.env enforcement is added.",
+      "name": "stale-plan-fails-closed",
+      "prompt": "Generate a plan for <REPO>, then modify a planned file and change the current branch before attempting to apply the old plan.",
+      "expected_output": "Apply refuses the stale plan before mutation because its Git and file preconditions no longer match.",
       "assertions": [
-        "Does NOT overwrite husky's core.hooksPath ownership; cooperates with husky (injection into .husky/* or an explicit non-clobber path).",
-        "lint-staged / commitlint remain intact and runnable.",
-        "Branch protection, force-push protection, and .env blocking are added.",
-        "The approach is explained, including how the two hook systems coexist."
+        "The immutable plan hash is still validated.",
+        "Commit, branch, worktree, file, and provider preconditions are checked.",
+        "Apply exits non-zero with a stale-plan explanation.",
+        "The user's intervening changes are preserved."
       ],
       "files": []
     },
     {
       "id": 5,
-      "name": "non-node-python-repo",
-      "prompt": "Add git guardrails to my Python project at <REPO> (there's no package.json — it's pure Python). I want to stop direct pushes to main and stop anyone committing secrets. Also make sure it keeps working after someone clones the repo fresh.",
-      "expected_output": "Guardrails installed on a repo with no package.json; the agent notes the Node runtime requirement for the hooks, and explains how a fresh clone re-arms (running activate.mjs once, since there is no npm install to trigger prepare). Push-to-main and secret commits are blocked.",
+      "name": "transaction-resume-and-rollback",
+      "prompt": "Apply an approved local plan to <REPO>, simulate an interruption after each action in separate fixtures, resume safely, then roll the completed transaction back and verify exact restoration.",
+      "expected_output": "Every interrupted local action is reconciled from its write-ahead record and backup, resume finishes idempotently, and rollback restores exact prior bytes.",
       "assertions": [
-        "Installs successfully despite no package.json.",
-        "Notes that the hooks need Node on PATH at runtime.",
-        "Explains the fresh-clone re-arm step for non-Node repos (node .gitflow-sentinel/activate.mjs), since prepare cannot auto-run.",
-        "Push-to-main and secret/.env commits are blocked."
+        "Transactions and backups live under the Git directory.",
+        "An in-flight local write is reconciled before retry.",
+        "Resume never replays an uncertain external action.",
+        "Rollback restores prior bytes and removes only transaction-created paths.",
+        "Verification after rollback reports the original local state."
       ],
       "files": []
     },
     {
       "id": 6,
-      "name": "server-side-protection",
-      "prompt": "Set up branch protection for <REPO>, and on top of the local hooks I want it enforced on GitHub itself so it still holds even if a teammate skips the local setup. Block direct pushes and force-pushes to main and require PRs.",
-      "expected_output": "Local guardrails installed AND server-side GitHub branch protection configured (or clearly offered/attempted) via the --github-protection path / github-protect script, requiring gh auth. Explains that the server layer is the boundary that holds regardless of local setup.",
+      "name": "github-ruleset-preservation",
+      "prompt": "The GitHub repository for <REPO> already has custom settings and unrelated rulesets. Plan stronger protection for main with two reviewers and apply it only after a dedicated approval.",
+      "expected_output": "Sentinel creates or updates only its named ruleset, preserves unrelated provider state, checks remote preconditions, and reads the result back.",
       "assertions": [
-        "Installs the local guardrails.",
-        "Uses or offers the server-side GitHub protection path (--github-protection / github-protect.mjs), noting it needs an authenticated gh.",
-        "Explains the difference between local hooks and server-side protection."
+        "The ruleset action is R3 and requires its action-id approval.",
+        "Unrelated rulesets and repository settings are not sent as replacement values.",
+        "Remote drift between plan and apply aborts the action.",
+        "The saved rules, branches, enforcement state, and reviewer count are verified.",
+        "A refused GitHub operation exits non-zero."
       ],
       "files": []
     },
     {
       "id": 7,
-      "name": "clean-uninstall",
-      "prompt": "I tried gitflow-sentinel on <REPO> to evaluate it but we're going a different direction. Remove it cleanly — I don't want leftover hooks or config silently blocking commits later.",
-      "expected_output": "Runs the uninstall (dry-run then apply), which restores the previous core.hooksPath, de-merges the agent wirings, and removes the runtime. Confirms commits are no longer blocked and notes that project docs are left for manual review.",
+      "name": "owned-uninstall",
+      "prompt": "Remove the Sentinel Core setup from <REPO>. The project has user edits made after installation and one historical remote action. Preview exactly what can be restored before doing anything.",
+      "expected_output": "Uninstall produces an approval hash, rolls completed local transactions back newest-first, refuses to overwrite later user edits, and defers the remote action to a separately approved compensating plan.",
       "assertions": [
-        "Uses scripts/uninstall.mjs (not ad-hoc deletion).",
-        "Restores/unsets core.hooksPath so commits are no longer blocked.",
-        "Removes the runtime and de-merges agent wirings.",
-        "Notes that AGENTS.md/CONTRIBUTING.md/CLAUDE.md prose is left for manual cleanup."
+        "Uninstall is a read-only preview until its current hash is approved.",
+        "Only transaction-owned local changes are restored or removed.",
+        "Files changed after Sentinel wrote them cause a safe failure.",
+        "Remote deletion or policy reversal is not automatic.",
+        "Historical 2.x removal is routed through legacy-uninstall."
       ],
       "files": []
     }

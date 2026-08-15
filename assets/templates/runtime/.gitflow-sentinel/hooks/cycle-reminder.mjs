@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 // managed-by: gitflow-sentinel
-// Stop hook. The final guard against leaving work in a half-finished Git state:
+// Stop hook. A final advisory against leaving work in a half-finished Git state:
 // uncommitted changes on a protected branch, or a "clean" short branch that was
 // never pushed / has no PR / has a merged PR not yet synced locally. When that
-// happens it exits 2, which asks the agent to resolve or explicitly report the
-// state before ending. Otherwise it just prints reminders.
+// happens it prints a clear reminder but never traps the host in a stop loop.
 import { loadConfig, isShortBranch, isProtected } from "../core/config.mjs";
 import { readState, gh } from "../core/git.mjs";
 
@@ -25,7 +24,7 @@ if (typeof config._source === "string" && config._source.startsWith("defaults (i
 }
 const integration = config.integrationBranch;
 const branch = state.branch;
-let blockStop = false;
+let incompleteClosure = false;
 
 const changedCount = state.porcelain ? state.porcelain.split(/\r?\n/).filter(Boolean).length : 0;
 
@@ -33,7 +32,7 @@ if (changedCount > 0) {
   console.error(`gitflow-sentinel: ${changedCount} changed path(s) remain on ${branch}.`);
   if (isProtected(config, branch)) {
     console.error(`  - ${branch} must not carry direct edits. Move the work to a short branch or record an explicit override.`);
-    blockStop = true;
+    incompleteClosure = true;
   } else {
     console.error("  - Run checks and create the appropriate commit before ending a validated step.");
     if (changedCount >= 8) console.error("  - The diff is large; consider a WIP checkpoint or a smaller commit boundary.");
@@ -44,13 +43,13 @@ if (isShortBranch(config, branch)) {
   const clean = changedCount === 0;
   if (!state.remotes) {
     console.error("gitflow-sentinel: incomplete closure — no remote, so this branch cannot be reviewed on GitHub.");
-    blockStop = blockStop || clean;
+    incompleteClosure = incompleteClosure || clean;
   } else if (!state.upstream) {
     console.error(`gitflow-sentinel: incomplete closure — ${branch} has no upstream. Push with git push -u origin ${branch}.`);
-    blockStop = blockStop || clean;
+    incompleteClosure = incompleteClosure || clean;
   } else if (state.ahead) {
     console.error(`gitflow-sentinel: incomplete closure — ${branch} has local commits not pushed to ${state.upstream}.`);
-    blockStop = blockStop || clean;
+    incompleteClosure = incompleteClosure || clean;
   } else {
     const prRaw = gh(["pr", "view", "--json", "number,state,baseRefName,url"], workdir);
     let pr = null;
@@ -59,7 +58,7 @@ if (isShortBranch(config, branch)) {
     if (!pr) {
       console.error("gitflow-sentinel: incomplete closure — no PR could be verified. Open or update a PR toward " + integration + ".");
       console.error("  - If gh is not authenticated, run gh auth status and verify the PR manually.");
-      blockStop = blockStop || clean;
+      incompleteClosure = incompleteClosure || clean;
     } else if (pr.state === "OPEN" && pr.baseRefName === integration) {
       console.error(`gitflow-sentinel: PR #${pr.number} targets ${integration}: ${pr.url}`);
       console.error(`  - Ask for the decision: merge to ${integration} now, or keep the branch open.`);
@@ -67,16 +66,15 @@ if (isShortBranch(config, branch)) {
     } else if (pr.state === "MERGED") {
       console.error(`gitflow-sentinel: PR #${pr.number} is merged. Finish local sync before new work:`);
       console.error(`  - git fetch --prune && git switch ${integration} && git pull --ff-only`);
-      blockStop = true;
+      incompleteClosure = true;
     } else {
       console.error(`gitflow-sentinel: incomplete closure — PR #${pr.number ?? "?"} is ${pr.state}/${pr.baseRefName}, expected OPEN/${integration}.`);
-      blockStop = blockStop || clean;
+      incompleteClosure = incompleteClosure || clean;
     }
   }
 }
 
-if (blockStop) {
-  console.error("gitflow-sentinel: stop blocked until the Git state above is resolved or explicitly reported as blocked.");
-  process.exit(2);
+if (incompleteClosure) {
+  console.error("gitflow-sentinel: incomplete Git closure reported above; the stop hook is advisory and will not trap the session.");
 }
 process.exit(0);

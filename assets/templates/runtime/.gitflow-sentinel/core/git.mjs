@@ -37,7 +37,8 @@ export function isRepo(cwd = ".") {
 // porcelain + `--short --branch`) into one: the branch/tracking line always
 // comes first, everything after it is the file-status porcelain.
 export function readState(cwd = ".") {
-  if (!isRepo(cwd)) return { isRepo: false };
+  const root = git(["rev-parse", "--show-toplevel"], cwd);
+  if (!root) return { isRepo: false };
 
   const branch = git(["branch", "--show-current"], cwd) || "(detached)";
   const statusLines = git(["status", "--porcelain", "--branch"], cwd).split(/\r?\n/);
@@ -51,6 +52,7 @@ export function readState(cwd = ".") {
 
   return {
     isRepo: true,
+    root,
     branch,
     dirty: Boolean(porcelain),
     porcelain,
@@ -72,5 +74,11 @@ export function stagedDiff(cwd = ".") {
   // value>), which the scanner self-flags as a high-entropy secret assignment —
   // this otherwise makes the engine unable to commit its own files. Filename-based
   // detection (scanStagedFiles) still covers the whole repo, including this dir.
-  return git(["diff", "--cached", "--unified=0", "--", ".", ":(exclude).gitflow-sentinel"], cwd);
+  return git([
+    "diff", "--cached", "--unified=0", "--", ".",
+    ":(exclude).gitflow-sentinel/core/**",
+    ":(exclude).gitflow-sentinel/hooks/**",
+    ":(exclude).gitflow-sentinel/githooks/**",
+    ":(exclude).gitflow-sentinel/activate.mjs",
+  ], cwd);
 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Configure Project"
+  short_description: "Inspect and safely configure project foundations"
+  default_prompt: "Use $configure-project to inspect this repository and prepare a reversible configuration plan."

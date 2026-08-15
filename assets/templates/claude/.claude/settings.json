@@ -9,7 +9,7 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Bash|Edit|Write|MultiEdit|NotebookEdit",
+        "matcher": "*",
         "hooks": [
           { "type": "command", "command": "node .gitflow-sentinel/hooks/guard.mjs" }
         ]

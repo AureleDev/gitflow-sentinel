@@ -201,7 +201,8 @@ test("package prepare migration is safe when the project runtime is absent", () 
 
   const root = tempProject("sentinel-safe-prepare-");
   try {
-    writeFileSync(path.join(root, "package.json"), `${JSON.stringify({
+    const packageFile = path.join(root, "package.json");
+    writeFileSync(packageFile, `${JSON.stringify({
       scripts: { prepare: ACTIVATE_PREPARE_COMMAND },
     }, null, 2)}\n`);
     execFileSync(
@@ -209,6 +210,15 @@ test("package prepare migration is safe when the project runtime is absent", () 
       ["-e", "const p=require('./package.json');require('node:child_process').execSync(p.scripts.prepare,{stdio:'pipe'})"],
       { cwd: root, stdio: ["ignore", "pipe", "pipe"] },
     );
+
+    writeFileSync(packageFile, `${JSON.stringify({
+      scripts: { prepare: LEGACY_ACTIVATE_PREPARE_COMMAND },
+    }, null, 2)}\n`);
+    const planned = createPlanFor(root, "standard", [], { profile: "standard", modules: [], provided: {} });
+    const prepareAction = planned.plan.actions.find((action) => action.target === "package.json");
+    assert.ok(prepareAction);
+    assert.equal(prepareAction.legacyAddition, LEGACY_ACTIVATE_PREPARE_COMMAND);
+    assert.equal(mergeJsonValue(JSON.parse(readFileSync(packageFile, "utf8")), prepareAction).scripts.prepare, ACTIVATE_PREPARE_COMMAND);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

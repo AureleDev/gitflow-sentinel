@@ -66,6 +66,7 @@ function jsonMergeAction(root, actions, module, relativePath, patch, {
   description,
   strategy = "deep",
   addition = "",
+  legacyAddition = "",
   risk,
 } = {}) {
   const target = path.join(root, relativePath);
@@ -81,6 +82,7 @@ function jsonMergeAction(root, actions, module, relativePath, patch, {
     strategy,
     ...(patch ? { patch } : {}),
     ...(addition ? { addition } : {}),
+    ...(legacyAddition ? { legacyAddition } : {}),
   };
   if (existsSync(target) && readFileSync(target, "utf8") === serializeMergedJson(existing, draft)) return;
   actions.push(draft);

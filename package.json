@@ -48,7 +48,8 @@
     "validate:evals": "node tools/validation/validate-evals.mjs",
     "validate:package": "node tools/validation/validate-package.mjs",
     "validate:self-host": "node tools/validation/validate-self-host.mjs",
-    "validate:projects": "node tools/validation/validate-project-matrix.mjs"
+    "validate:projects": "node tools/validation/validate-project-matrix.mjs",
+    "prepare": "node -e \"const fs=require('node:fs');if(fs.existsSync('.gitflow-sentinel/activate.mjs'))import('./.gitflow-sentinel/activate.mjs')\""
   },
   "files": [
     "SKILL.md",

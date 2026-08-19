@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 
 export const SKILL_NAME = "gitflow-sentinel";
 export const MANAGED_MARKER = "managed-by: gitflow-sentinel";
+export const LEGACY_ACTIVATE_PREPARE_COMMAND = "node .gitflow-sentinel/activate.mjs";
+export const ACTIVATE_PREPARE_COMMAND = "node -e \"const fs=require('node:fs');if(fs.existsSync('.gitflow-sentinel/activate.mjs'))import('./.gitflow-sentinel/activate.mjs')\"";
 export const SKILL_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const TEMPLATE_ROOT = path.join(SKILL_ROOT, "assets", "templates");
 export const RUNTIME_VERSION = readFileSync(
@@ -21,6 +23,7 @@ export function run(command, args, cwd, options = {}) {
     return execFileSync(command, args, {
       cwd,
       encoding: "utf8",
+      env: options.env ? { ...process.env, ...options.env } : undefined,
       stdio: options.input ? ["pipe", "pipe", "pipe"] : ["ignore", "pipe", "pipe"],
       input: options.input,
       timeout: options.timeout,

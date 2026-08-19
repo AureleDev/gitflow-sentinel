@@ -10,7 +10,7 @@ import {
   SKILL_NAME, SKILL_ROOT, TEMPLATE_ROOT, RUNTIME_VERSION,
   run, isFailure, normalizeRel, listFiles, renderTemplate, readJsonSafe,
   writeText, backupPath, isManaged, mergeHooks, gitReadiness, BOOTSTRAP_ALLOWED, git, detectHookManager,
-  nextValue, resolveProjectRoot,
+  nextValue, resolveProjectRoot, ACTIVATE_PREPARE_COMMAND, LEGACY_ACTIVATE_PREPARE_COMMAND,
 } from "./lib.mjs";
 import { loadConfig, assertValidConfig } from "../assets/templates/runtime/.gitflow-sentinel/core/config.mjs";
 import { readFile, writeFile } from "node:fs/promises";
@@ -331,12 +331,17 @@ async function injectPrepare(root, apply) {
   }
   const pkg = readJsonSafe(pkgPath);
   if (!pkg) { console.log("- package.json is not valid JSON; skipped prepare wiring."); return; }
-  const step = "node .gitflow-sentinel/activate.mjs";
+  const step = ACTIVATE_PREPARE_COMMAND;
   const prepare = pkg.scripts?.prepare || "";
-  if (prepare.includes("activate.mjs")) { console.log("- package.json prepare already re-arms hooks."); return; }
+  if (prepare.includes(step) && !prepare.includes(LEGACY_ACTIVATE_PREPARE_COMMAND)) { console.log("- package.json prepare already re-arms hooks."); return; }
   if (!apply) { console.log('- would add a "prepare" re-arm step to package.json on --apply.'); return; }
+  const retained = prepare
+    .split(/\s*&&\s*/)
+    .map((part) => part.trim())
+    .filter((part) => part && part !== LEGACY_ACTIVATE_PREPARE_COMMAND);
+  if (!retained.includes(step)) retained.push(step);
   pkg.scripts = pkg.scripts || {};
-  pkg.scripts.prepare = prepare ? `${prepare} && ${step}` : step;
+  pkg.scripts.prepare = retained.join(" && ");
   await writeFile(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf8");
   console.log('- package.json "prepare" now re-arms hooks on install (survives fresh clones).');
 }

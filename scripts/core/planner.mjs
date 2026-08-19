@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
+  ACTIVATE_PREPARE_COMMAND,
+  LEGACY_ACTIVATE_PREPARE_COMMAND,
   SKILL_ROOT,
   TEMPLATE_ROOT,
   listFiles,
@@ -64,6 +66,7 @@ function jsonMergeAction(root, actions, module, relativePath, patch, {
   description,
   strategy = "deep",
   addition = "",
+  legacyAddition = "",
   risk,
 } = {}) {
   const target = path.join(root, relativePath);
@@ -79,6 +82,7 @@ function jsonMergeAction(root, actions, module, relativePath, patch, {
     strategy,
     ...(patch ? { patch } : {}),
     ...(addition ? { addition } : {}),
+    ...(legacyAddition ? { legacyAddition } : {}),
   };
   if (existsSync(target) && readFileSync(target, "utf8") === serializeMergedJson(existing, draft)) return;
   actions.push(draft);
@@ -276,16 +280,23 @@ function guardrailContext(root, config) {
     stableBranch: config.vcs.stableBranch,
     integrationBranch: config.vcs.integrationBranch,
     legacyBranch: config.vcs.legacyBranch,
-    shortPrefixes: "feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert",
+    shortPrefixes: "feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, codex, claude, opencode",
   };
 }
 
 function guardrailPatch(root, config) {
   const file = path.join(root, ".gitflow-sentinel.json");
   const existing = parseJsonFile(file, ".gitflow-sentinel.json");
-  const prefixes = Array.isArray(existing.shortBranchPrefixes)
+  const conventionalPrefixes = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"];
+  const configuredPrefixes = Array.isArray(existing.shortBranchPrefixes)
     ? existing.shortBranchPrefixes
-    : ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"];
+    : conventionalPrefixes;
+  const agentPrefixes = (config.agents?.enabled || [])
+    .filter((agent) => ["codex", "claude", "opencode"].includes(agent));
+  const prefixes = [...new Set([...configuredPrefixes, ...agentPrefixes])];
+  const commitTypes = Object.prototype.hasOwnProperty.call(existing, "commitTypes")
+    ? existing.commitTypes
+    : conventionalPrefixes;
   const shortRoutes = prefixes.map((prefix) => `${prefix}/*`);
   return {
     version: 1,
@@ -294,6 +305,7 @@ function guardrailPatch(root, config) {
     protectedBranches: config.vcs.protectedBranches,
     legacyBranch: config.vcs.legacyBranch,
     shortBranchPrefixes: prefixes,
+    commitTypes,
     prRoutes: {
       ...(existing.prRoutes || {}),
       [config.vcs.integrationBranch]: shortRoutes,
@@ -372,11 +384,12 @@ function addGuardrailRuntime(root, actions, recommendations, snapshot, config) {
   if (existsSync(packageFile)) {
     const packageJson = parseJsonFile(packageFile, "package.json");
     const prepare = packageJson.scripts?.prepare || "";
-    const activation = "node .gitflow-sentinel/activate.mjs";
-    if (!prepare.includes(activation)) {
+    const activation = ACTIVATE_PREPARE_COMMAND;
+    if (!prepare.includes(activation) || prepare.includes(LEGACY_ACTIVATE_PREPARE_COMMAND)) {
       jsonMergeAction(root, actions, "git", "package.json", null, {
         strategy: "package-prepare",
         addition: activation,
+        legacyAddition: LEGACY_ACTIVATE_PREPARE_COMMAND,
         risk: "R2",
         description: "Re-arm native Git hooks after a fresh dependency installation.",
       });

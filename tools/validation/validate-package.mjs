@@ -82,6 +82,12 @@ try {
   ]) {
     assert.equal(existsSync(path.join(installed, relative)), false, `archive must exclude ${relative}`);
   }
+  assert.equal(
+    existsSync(path.join(installed, ".gitflow-sentinel", "activate.mjs")),
+    false,
+    "the published tool package must not contain a project-local policy runtime",
+  );
+  runNpm(["run", "prepare"], installed);
 
   const target = path.join(temp, "plain-folder");
   mkdirSync(target);

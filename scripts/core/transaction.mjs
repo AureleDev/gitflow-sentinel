@@ -340,7 +340,13 @@ function applyGitHubPushBranch(transaction, action) {
     "git",
     ["-C", root, "push", "--set-upstream", "origin", `${action.branchName}:${action.branchName}`],
     root,
-    { timeout: 60_000 },
+    {
+      timeout: 60_000,
+      // The native hook must keep blocking ordinary direct pushes to protected
+      // branches. This exception is limited to the already approved, journaled
+      // R3 action that creates the integration branch and is verified below.
+      env: { GITFLOW_OVERRIDE: "explicit" },
+    },
   );
   if (isFailure(result)) throw new Error(`Could not push ${action.branchName}: ${result.message}`);
   const remoteTip = remoteBranchTip(root, action.branchName);

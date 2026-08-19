@@ -13,7 +13,7 @@ integration. Existing unmanaged skill directories are never overwritten.
 
 ## Codex
 
-Use `.agents/skills` for discovery. Merge Codex hooks or rules structurally and preserve unrelated settings. Require the repository to be trusted before project configuration can take effect.
+Use `.agents/skills` for discovery. Merge Codex hooks or rules structurally and preserve unrelated settings. Require the repository to be trusted, then review and trust every new or changed project-hook hash with `/hooks` before claiming direct-edit enforcement is active.
 
 When the Codex interface offers Plan mode, recommend enabling it before a
 configuration request so the structured user-input tool is available for

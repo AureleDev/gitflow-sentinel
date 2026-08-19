@@ -1,0 +1,3 @@
+#!/bin/sh
+# managed-by: gitflow-sentinel
+exec node "$(dirname "$0")/native.mjs" pre-commit

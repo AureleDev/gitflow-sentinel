@@ -7,10 +7,14 @@ changes them in `.gitflow-sentinel.json` (see `configuration.md`).
 
 ```text
 feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert/*  ->  dev   (PR)
+codex|claude|opencode/*                                          ->  dev   (PR)
 hotfix/*                                                         ->  dev or main, with approval
 release/*                                                        ->  main, milestone promotion
 dev                                                              ->  main, validated milestones (PR)
 ```
+
+Agent namespaces are branch prefixes only. Conventional Commit types remain
+limited to the conventional vocabulary (`feat`, `fix`, `docs`, and so on).
 
 Forbidden by default:
 

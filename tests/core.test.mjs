@@ -46,6 +46,7 @@ import { collectSetupApprovals, withLocalGitPolicy } from "../scripts/core/setup
 import { renderSetupCompletion, renderSetupSummary } from "../scripts/core/human-output.mjs";
 import { compactPendingActions, compactPlan, compactSnapshot } from "../scripts/core/public-output.mjs";
 import { mergeManagedBlock } from "../scripts/core/managed-block.mjs";
+import { mergeJsonValue } from "../scripts/core/json-merge.mjs";
 import {
   analyze,
   isDirectEditTool,
@@ -57,7 +58,7 @@ import {
 } from "../assets/templates/runtime/.gitflow-sentinel/core/event.mjs";
 import { DEFAULTS, validateConfig } from "../assets/templates/runtime/.gitflow-sentinel/core/config.mjs";
 import { evaluate, partition } from "../assets/templates/runtime/.gitflow-sentinel/core/policy.mjs";
-import { run } from "../scripts/lib.mjs";
+import { ACTIVATE_PREPARE_COMMAND, LEGACY_ACTIVATE_PREPARE_COMMAND, run } from "../scripts/lib.mjs";
 
 function tempProject(prefix = "sentinel-test-") {
   return mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -181,6 +182,43 @@ test("standard setup includes local Git policy without becoming a custom profile
     assert.equal(plan.desiredState.profile, "standard");
     assert.equal(plan.desiredState.modules.enabled.includes("git-policy"), true);
     assert.equal(plan.actions.some((action) => action.module === "git-policy"), true);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("package prepare migration is safe when the project runtime is absent", () => {
+  const migrated = mergeJsonValue(
+    { scripts: { prepare: `npm run existing && ${LEGACY_ACTIVATE_PREPARE_COMMAND}` } },
+    {
+      strategy: "package-prepare",
+      addition: ACTIVATE_PREPARE_COMMAND,
+      legacyAddition: LEGACY_ACTIVATE_PREPARE_COMMAND,
+    },
+  );
+  assert.equal(migrated.scripts.prepare.includes(LEGACY_ACTIVATE_PREPARE_COMMAND), false);
+  assert.equal(migrated.scripts.prepare, `npm run existing && ${ACTIVATE_PREPARE_COMMAND}`);
+
+  const root = tempProject("sentinel-safe-prepare-");
+  try {
+    const packageFile = path.join(root, "package.json");
+    writeFileSync(packageFile, `${JSON.stringify({
+      scripts: { prepare: ACTIVATE_PREPARE_COMMAND },
+    }, null, 2)}\n`);
+    execFileSync(
+      process.execPath,
+      ["-e", "const p=require('./package.json');require('node:child_process').execSync(p.scripts.prepare,{stdio:'pipe'})"],
+      { cwd: root, stdio: ["ignore", "pipe", "pipe"] },
+    );
+
+    writeFileSync(packageFile, `${JSON.stringify({
+      scripts: { prepare: LEGACY_ACTIVATE_PREPARE_COMMAND },
+    }, null, 2)}\n`);
+    const planned = createPlanFor(root, "standard", [], { profile: "standard", modules: [], provided: {} });
+    const prepareAction = planned.plan.actions.find((action) => action.target === "package.json");
+    assert.ok(prepareAction);
+    assert.equal(prepareAction.legacyAddition, LEGACY_ACTIVATE_PREPARE_COMMAND);
+    assert.equal(mergeJsonValue(JSON.parse(readFileSync(packageFile, "utf8")), prepareAction).scripts.prepare, ACTIVATE_PREPARE_COMMAND);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -655,7 +693,7 @@ test("runtime hooks cover agent tools, allow short-branch push, and bound Stop c
 
   const root = tempProject("sentinel-hook-cycle-");
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  git(root, "init", "-b", "feat/review-fix");
+  git(root, "init", "-b", "codex/review-fix");
   git(root, "config", "user.email", "sentinel@example.invalid");
   git(root, "config", "user.name", "Sentinel Test");
   writeFileSync(path.join(root, "tracked.txt"), "fixture\n");
@@ -667,7 +705,7 @@ test("runtime hooks cover agent tools, allow short-branch push, and bound Stop c
   const push = spawnSync(process.execPath, [nativeHook, "pre-push"], {
     cwd: root,
     encoding: "utf8",
-    input: `refs/heads/feat/review-fix ${sha} refs/heads/feat/review-fix ${"0".repeat(40)}\n`,
+    input: `refs/heads/codex/review-fix ${sha} refs/heads/codex/review-fix ${"0".repeat(40)}\n`,
   });
   assert.equal(push.status, 0, push.stderr);
 
@@ -722,6 +760,12 @@ test("Git Flow is the default, explicit trunk is preserved, and existing config 
   assert.equal(initial.plan.desiredState.vcs.integrationBranch, "dev");
   assert.deepEqual(initial.plan.desiredState.vcs.protectedBranches, ["main", "dev"]);
   assert.equal(initial.plan.actions.some((action) => action.type === "git-branch" && action.branchName === "dev"), true);
+
+  const policyAction = initial.plan.actions.find((action) => action.target === ".gitflow-sentinel.json");
+  assert.ok(policyAction);
+  assert.equal(policyAction.patch.shortBranchPrefixes.includes("codex"), true);
+  assert.equal(policyAction.patch.prRoutes.dev.includes("codex/*"), true);
+  assert.equal(policyAction.patch.commitTypes.includes("codex"), false);
 
   const trunkConfig = structuredClone(initial.loaded.config);
   trunkConfig.vcs.strategy = "trunk";
@@ -1059,6 +1103,57 @@ test("R3 actions require their own approval and roll back prior local work", (t)
     /needs --approve-r3 002-github-github-create/,
   );
   assert.equal(existsSync(target), false);
+});
+
+test("approved remote branch creation crosses the native hook with a scoped override", (t) => {
+  const root = tempProject("sentinel-approved-push-");
+  const remote = tempProject("sentinel-approved-push-remote-");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  t.after(() => rmSync(remote, { recursive: true, force: true }));
+
+  git(root, "init", "-b", "main");
+  git(root, "config", "user.email", "sentinel@example.invalid");
+  git(root, "config", "user.name", "Sentinel Test");
+  writeFileSync(path.join(root, "seed.txt"), "seed\n");
+  git(root, "add", "seed.txt");
+  git(root, "commit", "-m", "test: seed project");
+  git(root, "branch", "dev");
+  git(remote, "init", "--bare");
+  git(root, "remote", "add", "origin", remote);
+
+  const hooks = path.join(root, ".test-hooks");
+  mkdirSync(hooks, { recursive: true });
+  writeFileSync(
+    path.join(hooks, "pre-push"),
+    "#!/bin/sh\n[ \"$GITFLOW_OVERRIDE\" = \"explicit\" ] || exit 1\n",
+    { mode: 0o755 },
+  );
+  git(root, "config", "core.hooksPath", ".test-hooks");
+  assert.throws(() => git(root, "push", "origin", "dev:dev"));
+
+  const tip = git(root, "rev-parse", "dev");
+  const actionId = "001-github-github-push-branch";
+  const plan = finalizePlan({
+    id: "plan-approved-push-test",
+    root,
+    desiredState: {},
+    snapshot: {},
+    recommendations: [],
+    actions: [{
+      id: actionId,
+      module: "github",
+      type: "github-push-branch",
+      risk: "R3",
+      branchName: "dev",
+      expectedTip: tip,
+      description: "Create the approved integration branch.",
+    }],
+  });
+
+  const transaction = applyPlan(plan, approvals(plan, { r3Approvals: [actionId] }));
+  assert.equal(transaction.status, "completed");
+  assert.equal(git(remote, "rev-parse", "refs/heads/dev"), tip);
+  assert.equal(git(root, "rev-parse", "--abbrev-ref", "dev@{upstream}"), "origin/dev");
 });
 
 test("transaction paths cannot escape the project root", (t) => {

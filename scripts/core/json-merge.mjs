@@ -18,9 +18,12 @@ export function mergeJsonValue(existing, action) {
       ? { ...next.scripts }
       : {};
     const current = typeof next.scripts.prepare === "string" ? next.scripts.prepare : "";
-    if (!current.includes(action.addition)) {
-      next.scripts.prepare = current ? `${current} && ${action.addition}` : action.addition;
-    }
+    const steps = current
+      .split(/\s*&&\s*/)
+      .map((step) => step.trim())
+      .filter((step) => step && step !== action.legacyAddition);
+    if (!steps.includes(action.addition)) steps.push(action.addition);
+    next.scripts.prepare = steps.join(" && ");
     return next;
   }
   return deepMerge(existing, action.patch);

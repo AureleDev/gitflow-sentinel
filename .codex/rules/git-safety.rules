@@ -1,0 +1,60 @@
+# managed-by: gitflow-sentinel; guardrails-version: 0.0.3-alpha.3
+# Codex execpolicy rules: defense-in-depth for universally destructive commands.
+# Branch-model decisions (protected branches, PR routes) are enforced by the
+# config-aware hook in .gitflow-sentinel/hooks/guard.mjs, not here.
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "Hard reset discards work. Inspect status and agree a recovery plan instead.",
+    match = ["git reset --hard", "git reset --hard HEAD"],
+)
+
+prefix_rule(
+    pattern = ["git", "clean"],
+    decision = "prompt",
+    justification = "git clean can delete untracked source, docs, or generated artifacts.",
+    match = ["git clean -fd", "git clean -fdx"],
+)
+
+prefix_rule(
+    pattern = ["git", "push", "--force"],
+    decision = "forbidden",
+    justification = "Force-push rewrites shared history. Use a normal push or discuss recovery.",
+    match = ["git push --force", "git push -f"],
+)
+
+prefix_rule(
+    pattern = ["git", "push", "--force-with-lease"],
+    decision = "prompt",
+    justification = "Force-with-lease still rewrites history and needs explicit confirmation.",
+    match = ["git push --force-with-lease"],
+)
+
+prefix_rule(
+    pattern = ["git", "commit", "--no-verify"],
+    decision = "forbidden",
+    justification = "Fix the failing check instead of bypassing verification.",
+    match = ["git commit --no-verify"],
+)
+
+prefix_rule(
+    pattern = ["git", "worktree"],
+    decision = "prompt",
+    justification = "Worktrees are allowed only under the configured worktree root with approval.",
+    match = ["git worktree add ../x test"],
+)
+
+prefix_rule(
+    pattern = ["git", "branch", "-D"],
+    decision = "prompt",
+    justification = "Forced branch deletion must verify that no work is lost.",
+    match = ["git branch -D feat/test"],
+)
+
+prefix_rule(
+    pattern = ["git", "push", "origin", "--delete"],
+    decision = "prompt",
+    justification = "Remote branch deletion needs explicit validation after merge or abandonment.",
+    match = ["git push origin --delete feat/test"],
+)

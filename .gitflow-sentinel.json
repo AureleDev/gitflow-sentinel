@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "stableBranch": "main",
+  "integrationBranch": "dev",
+  "protectedBranches": [
+    "main",
+    "dev"
+  ],
+  "legacyBranch": "master",
+  "shortBranchPrefixes": [
+    "feat",
+    "fix",
+    "docs",
+    "style",
+    "refactor",
+    "perf",
+    "test",
+    "build",
+    "ci",
+    "chore",
+    "revert"
+  ],
+  "prRoutes": {
+    "dev": [
+      "feat/*",
+      "fix/*",
+      "docs/*",
+      "style/*",
+      "refactor/*",
+      "perf/*",
+      "test/*",
+      "build/*",
+      "ci/*",
+      "chore/*",
+      "revert/*"
+    ],
+    "main": [
+      "dev",
+      "release/*",
+      "hotfix/*"
+    ]
+  }
+}

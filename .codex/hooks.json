@@ -1,0 +1,38 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.gitflow-sentinel/hooks/session-start.mjs\"",
+            "commandWindows": "node \"$((git rev-parse --show-toplevel).Trim())\\.gitflow-sentinel\\hooks\\session-start.mjs\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.gitflow-sentinel/hooks/guard.mjs\"",
+            "commandWindows": "node \"$((git rev-parse --show-toplevel).Trim())\\.gitflow-sentinel\\hooks\\guard.mjs\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.gitflow-sentinel/hooks/cycle-reminder.mjs\"",
+            "commandWindows": "node \"$((git rev-parse --show-toplevel).Trim())\\.gitflow-sentinel\\hooks\\cycle-reminder.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

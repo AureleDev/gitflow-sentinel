@@ -1,0 +1,4 @@
+# gitflow-sentinel:start runtime-line-endings
+.gitflow-sentinel/**/*.mjs text eol=lf
+.gitflow-sentinel/githooks/* text eol=lf
+# gitflow-sentinel:end runtime-line-endings

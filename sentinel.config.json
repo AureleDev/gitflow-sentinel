@@ -10,12 +10,13 @@
   },
   "vcs": {
     "provider": "github",
-    "strategy": "trunk",
+    "strategy": "git-flow",
     "stableBranch": "main",
-    "integrationBranch": "main",
+    "integrationBranch": "dev",
     "legacyBranch": "master",
     "protectedBranches": [
-      "main"
+      "main",
+      "dev"
     ]
   },
   "agents": {
@@ -42,6 +43,7 @@
   "modules": {
     "enabled": [
       "git",
+      "git-policy",
       "github",
       "agents",
       "docs",

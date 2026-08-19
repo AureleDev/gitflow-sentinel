@@ -22,6 +22,8 @@ export const DEFAULT_COMMIT_TYPES = [
   "revert",
 ];
 
+export const DEFAULT_AGENT_BRANCH_PREFIXES = ["codex", "claude", "opencode"];
+
 export const DEFAULTS = {
   version: 1,
   stableBranch: "main",
@@ -31,14 +33,14 @@ export const DEFAULTS = {
   // Legacy stable branch that must be normalized before work starts.
   legacyBranch: "master",
   // Prefixes allowed for short work branches, e.g. feat/login.
-  shortBranchPrefixes: DEFAULT_COMMIT_TYPES.slice(),
+  shortBranchPrefixes: [...DEFAULT_COMMIT_TYPES, ...DEFAULT_AGENT_BRANCH_PREFIXES],
   // Optional: decouple commit-message types from branch prefixes. When unset the
   // two share one vocabulary (shortBranchPrefixes). Set this only if your commit
   // types differ from your branch prefixes.
-  commitTypes: null,
+  commitTypes: DEFAULT_COMMIT_TYPES.slice(),
   // Which head branches may open a PR against which base. "*" suffix = prefix.
   prRoutes: {
-    dev: ["feat/*", "fix/*", "docs/*", "style/*", "refactor/*", "perf/*", "test/*", "build/*", "ci/*", "chore/*", "revert/*", "hotfix/*"],
+    dev: ["feat/*", "fix/*", "docs/*", "style/*", "refactor/*", "perf/*", "test/*", "build/*", "ci/*", "chore/*", "revert/*", "codex/*", "claude/*", "opencode/*", "hotfix/*"],
     main: ["dev", "release/*", "hotfix/*"],
   },
   // Conventional Commits enforcement: "off" | "warn" | "block". Booleans are

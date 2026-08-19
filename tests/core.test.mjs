@@ -171,15 +171,14 @@ test("shell-write detection distinguishes commands, quoted text, and null sinks"
   ]) assert.equal(writes(command), true, command);
 });
 
-test("interactive standard setup can explicitly add local Git policy", () => {
+test("standard setup includes local Git policy without becoming a custom profile", () => {
   const selected = withLocalGitPolicy("standard");
-  assert.equal(selected.profile, "custom");
-  assert.equal(selected.modules.includes("git-policy"), true);
-  assert.equal(new Set(selected.modules).size, selected.modules.length);
+  assert.equal(selected.profile, "standard");
+  assert.deepEqual(selected.modules, []);
   const root = tempProject("sentinel-local-policy-");
   try {
-    const { plan } = createPlanFor(root, selected.profile, selected.modules, { profile: "standard", modules: [] });
-    assert.equal(plan.desiredState.profile, "custom");
+    const { plan } = createPlanFor(root, selected.profile, selected.modules, { profile: "standard", modules: [], provided: {} });
+    assert.equal(plan.desiredState.profile, "standard");
     assert.equal(plan.desiredState.modules.enabled.includes("git-policy"), true);
     assert.equal(plan.actions.some((action) => action.module === "git-policy"), true);
   } finally {
@@ -285,6 +284,48 @@ test("planner never mutates an unreadable GitHub ruleset", (t) => {
   assert.equal(plan.actions.some((action) => action.type === "github-ruleset"), false);
   assert.ok(plan.recommendations.some((item) =>
     item.module === "github" && item.severity === "error" && item.message.includes("cannot be read")));
+});
+
+test("Git Flow remote repair plans push, default branch, and ruleset as separate R3 actions", (t) => {
+  const root = tempProject("sentinel-remote-flow-");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  git(root, "init", "-b", "main");
+  git(root, "config", "user.email", "sentinel@example.invalid");
+  git(root, "config", "user.name", "Sentinel Test");
+  writeFileSync(path.join(root, "seed.txt"), "seed\n");
+  git(root, "add", "seed.txt");
+  git(root, "commit", "-m", "test: seed remote flow");
+  const snapshot = inspectProject(root);
+  snapshot.provider.github = {
+    checked: true,
+    available: true,
+    authenticated: true,
+    connected: true,
+    slug: "example/repository",
+    visibility: "public",
+    defaultBranch: "main",
+    permissions: { viewer: "ADMIN" },
+    remoteBranches: ["main"],
+    ruleset: {
+      readable: true,
+      present: true,
+      id: 42,
+      enforcement: "active",
+      include: ["refs/heads/main"],
+      ruleTypes: ["deletion", "non_fast_forward", "pull_request"],
+      reviewers: 1,
+    },
+  };
+  const loaded = loadDesiredState(root, snapshot, { profile: "standard" });
+  const plan = buildPlan(root, snapshot, loaded.config, loaded);
+  const remoteActions = plan.actions.filter((action) => action.risk === "R3");
+  assert.deepEqual(remoteActions.map((action) => action.type), [
+    "github-push-branch",
+    "github-default-branch",
+    "github-ruleset",
+  ]);
+  assert.equal(remoteActions[0].branchName, "dev");
+  assert.equal(remoteActions[1].branchName, "dev");
 });
 
 test("all registered modules expose the deterministic lifecycle contract", () => {
@@ -411,13 +452,13 @@ test("desired state enables agents already present in the inspected project", (t
   assert.deepEqual(loaded.config.agents.enabled, ["codex", "claude", "opencode"]);
 });
 
-test("standard keeps historical Git policy optional while hardened manages it", (t) => {
+test("standard and hardened both manage the local Git policy runtime", (t) => {
   const root = tempProject();
   t.after(() => rmSync(root, { recursive: true, force: true }));
   git(root, "init", "-b", "main");
   const standard = makePlan(root, "standard").plan;
   const hardened = makePlan(root, "hardened").plan;
-  assert.equal(standard.actions.some((action) => action.module === "git-policy"), false);
+  assert.equal(standard.actions.some((action) => action.module === "git-policy"), true);
   assert.equal(hardened.actions.some((action) => action.module === "git-policy"), true);
 });
 
@@ -599,7 +640,7 @@ test("setup plan-only is a one-command read-only greenfield preview", (t) => {
   assert.deepEqual(readdirSync(root), []);
 });
 
-test("runtime hooks cover every Claude tool, allow short-branch push, and never trap Stop", (t) => {
+test("runtime hooks cover agent tools, allow short-branch push, and bound Stop continuation", (t) => {
   const claudeSettings = JSON.parse(readFileSync(
     path.resolve("assets/templates/claude/.claude/settings.json"),
     "utf8",
@@ -631,9 +672,20 @@ test("runtime hooks cover every Claude tool, allow short-branch push, and never 
   assert.equal(push.status, 0, push.stderr);
 
   const stopHook = path.resolve("assets/templates/runtime/.gitflow-sentinel/hooks/cycle-reminder.mjs");
-  const stop = spawnSync(process.execPath, [stopHook], { cwd: root, encoding: "utf8" });
-  assert.equal(stop.status, 0, stop.stderr);
-  assert.match(stop.stderr, /advisory and will not trap/i);
+  const stop = spawnSync(process.execPath, [stopHook], {
+    cwd: root,
+    encoding: "utf8",
+    input: JSON.stringify({ hook_event_name: "Stop", stop_hook_active: false }),
+  });
+  assert.equal(stop.status, 2, stop.stderr);
+  assert.match(stop.stderr, /stop blocked once/i);
+  const repeatedStop = spawnSync(process.execPath, [stopHook], {
+    cwd: root,
+    encoding: "utf8",
+    input: JSON.stringify({ hook_event_name: "Stop", stop_hook_active: true }),
+  });
+  assert.equal(repeatedStop.status, 0, repeatedStop.stderr);
+  assert.match(repeatedStop.stderr, /allowing termination to avoid a loop/i);
 
   git(root, "branch", "main");
   git(root, "switch", "main");
@@ -653,6 +705,71 @@ test("runtime hooks cover every Claude tool, allow short-branch push, and never 
   const inside = guardCall(path.join(root, "inside.txt"));
   assert.equal(inside.status, 2, inside.stderr);
   assert.match(inside.stderr, /DIRECT_EDIT_PROTECTED/);
+});
+
+test("Git Flow is the default, explicit trunk is preserved, and existing config options are not ignored", (t) => {
+  const root = tempProject("sentinel-strategy-");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  git(root, "init", "-b", "main");
+  git(root, "config", "user.email", "sentinel@example.invalid");
+  git(root, "config", "user.name", "Sentinel Test");
+  writeFileSync(path.join(root, "seed.txt"), "seed\n");
+  git(root, "add", "seed.txt");
+  git(root, "commit", "-m", "test: seed project");
+
+  const initial = createPlanFor(root, "standard", [], { profile: "standard", modules: [], provided: {} });
+  assert.equal(initial.plan.desiredState.vcs.strategy, "git-flow");
+  assert.equal(initial.plan.desiredState.vcs.integrationBranch, "dev");
+  assert.deepEqual(initial.plan.desiredState.vcs.protectedBranches, ["main", "dev"]);
+  assert.equal(initial.plan.actions.some((action) => action.type === "git-branch" && action.branchName === "dev"), true);
+
+  const trunkConfig = structuredClone(initial.loaded.config);
+  trunkConfig.vcs.strategy = "trunk";
+  trunkConfig.vcs.integrationBranch = "main";
+  trunkConfig.vcs.protectedBranches = ["main"];
+  writeFileSync(path.join(root, "sentinel.config.json"), `${JSON.stringify(trunkConfig, null, 2)}\n`);
+  const preserved = createPlanFor(root, "standard", [], { profile: "standard", modules: [], provided: {} });
+  assert.equal(preserved.plan.desiredState.vcs.strategy, "trunk");
+
+  const overridden = createPlanFor(root, "standard", [], {
+    profile: "standard",
+    modules: [],
+    strategy: "git-flow",
+    provided: { strategy: true },
+  });
+  assert.equal(overridden.plan.desiredState.vcs.strategy, "git-flow");
+  assert.equal(overridden.plan.desiredState.vcs.integrationBranch, "dev");
+  assert.equal(overridden.loaded.source, "file-migration");
+  assert.equal(overridden.plan.actions.some((action) => action.target === "sentinel.config.json"), true);
+});
+
+test("integration branch creation is transactional and rollback preserves later branch work", (t) => {
+  const root = tempProject("sentinel-dev-branch-");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  git(root, "init", "-b", "main");
+  git(root, "config", "user.email", "sentinel@example.invalid");
+  git(root, "config", "user.name", "Sentinel Test");
+  writeFileSync(path.join(root, "seed.txt"), "seed\n");
+  git(root, "add", "seed.txt");
+  git(root, "commit", "-m", "test: seed project");
+
+  const { plan } = createPlanFor(root, "standard", [], { profile: "standard", modules: [], provided: {} });
+  const transaction = applyPlan(plan, approvals(plan));
+  assert.equal(git(root, "rev-parse", "dev"), git(root, "rev-parse", "main"));
+  rollbackTransaction(root, transaction.id);
+  assert.throws(() => git(root, "rev-parse", "--verify", "dev"));
+
+  const second = createPlanFor(root, "standard", [], { profile: "standard", modules: [], provided: {} });
+  const applied = applyPlan(second.plan, approvals(second.plan));
+  const originalDev = git(root, "rev-parse", "dev");
+  git(root, "switch", "-c", "feat/advance-dev", "dev");
+  writeFileSync(path.join(root, "dev.txt"), "work\n");
+  git(root, "add", "dev.txt");
+  git(root, "commit", "-m", "test: advance integration fixture");
+  const advancedDev = git(root, "rev-parse", "HEAD");
+  git(root, "switch", "main");
+  git(root, "update-ref", "refs/heads/dev", advancedDev, originalDev);
+  assert.throws(() => rollbackTransaction(root, applied.id), /changed after Sentinel created/i);
 });
 
 test("quality evidence requires approval, stores no output, and is bound to repository state", (t) => {
@@ -1040,6 +1157,12 @@ test("resume recovers interruptions after every local action family", async (t) 
       value: "enabled",
       precondition: { value: "" },
     },
+    {
+      type: "git-branch",
+      module: "git",
+      branchName: "dev",
+      requiresCommit: true,
+    },
   ];
 
   for (const fixture of fixtures) {
@@ -1047,6 +1170,13 @@ test("resume recovers interruptions after every local action family", async (t) 
       const root = tempProject(`sentinel-interrupt-${fixture.type}-`);
       subtest.after(() => rmSync(root, { recursive: true, force: true }));
       git(root, "init", "-b", "main");
+      if (fixture.requiresCommit) {
+        git(root, "config", "user.email", "sentinel@example.invalid");
+        git(root, "config", "user.name", "Sentinel Test");
+        writeFileSync(path.join(root, "seed.txt"), "seed\n");
+        git(root, "add", "seed.txt");
+        git(root, "commit", "-m", "test: seed branch fixture");
+      }
       if (fixture.target && fixture.existing !== undefined) writeFileSync(path.join(root, fixture.target), fixture.existing);
       const action = {
         id: `001-${fixture.module}-${fixture.type}`,
@@ -1063,6 +1193,11 @@ test("resume recovers interruptions after every local action family", async (t) 
         ...(fixture.strategy ? { strategy: fixture.strategy } : {}),
         ...(fixture.patch ? { patch: fixture.patch } : {}),
         ...(fixture.key ? { key: fixture.key, value: fixture.value, precondition: fixture.precondition } : {}),
+        ...(fixture.branchName ? {
+          branchName: fixture.branchName,
+          startPoint: git(root, "rev-parse", "HEAD"),
+          precondition: { exists: false, startPoint: git(root, "rev-parse", "HEAD") },
+        } : {}),
       };
       const plan = finalizePlan({
         id: `plan-interrupt-${fixture.type}`,
@@ -1071,7 +1206,7 @@ test("resume recovers interruptions after every local action family", async (t) 
         snapshot: {
           git: {
             isRepo: true,
-            head: "",
+            head: fixture.requiresCommit ? git(root, "rev-parse", "HEAD") : "",
             branch: "main",
             statusHash: inspectProject(root).git.statusHash,
           },
@@ -1092,8 +1227,10 @@ test("resume recovers interruptions after every local action family", async (t) 
         assert.equal(readFileSync(path.join(root, fixture.target), "utf8"), fixture.existing);
       } else if (fixture.target) {
         assert.equal(existsSync(path.join(root, fixture.target)), false);
-      } else {
+      } else if (fixture.key) {
         assert.throws(() => git(root, "config", "--local", "--get", fixture.key));
+      } else if (fixture.branchName) {
+        assert.throws(() => git(root, "rev-parse", "--verify", fixture.branchName));
       }
     });
   }

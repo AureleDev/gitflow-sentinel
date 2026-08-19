@@ -13,6 +13,17 @@ configuration to `sentinel.config.json` and transactions to `.git/sentinel/`.
 6. Apply the exact plan hash.
 7. Run `gitflow-sentinel verify <path> --json`.
 
+For an alpha installation that recorded trunk implicitly before Git Flow became
+the standard, request the migration explicitly:
+
+```bash
+gitflow-sentinel setup <path> --strategy git-flow
+```
+
+The plan updates the desired state, installs the policy runtime, activates the
+native hooks and creates `dev` transactionally when an initial commit exists.
+Remote push, default-branch and ruleset changes remain separate R3 actions.
+
 ## Configuration
 
 A valid `.gitflow-sentinel.json` is treated as legacy Git-policy data. Sentinel

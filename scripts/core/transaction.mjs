@@ -283,6 +283,30 @@ function applyGitInit(transaction, action) {
   return { kind: "git-init", gitDir: gitDir(root), reversible: true };
 }
 
+function gitBranchTip(root, branch) {
+  const value = run("git", ["-C", root, "rev-parse", "--verify", `refs/heads/${branch}`], root);
+  return isFailure(value) ? "" : String(value).trim();
+}
+
+function applyGitBranch(transaction, action) {
+  const root = transaction.plan.root;
+  const valid = run("git", ["check-ref-format", "--branch", action.branchName], root);
+  if (isFailure(valid)) throw new Error(`Invalid Git branch name: ${action.branchName}.`);
+  if (gitBranchTip(root, action.branchName)) throw new Error(`Plan is stale: branch ${action.branchName} already exists.`);
+  const startPoint = run("git", ["-C", root, "rev-parse", "--verify", action.startPoint], root);
+  if (isFailure(startPoint) || String(startPoint).trim() !== action.precondition.startPoint) {
+    throw new Error(`Plan is stale: start point for ${action.branchName} changed.`);
+  }
+  const result = run("git", ["-C", root, "branch", action.branchName, action.startPoint], root);
+  if (isFailure(result)) throw new Error(`Could not create Git branch ${action.branchName}: ${result.message}`);
+  return {
+    kind: "git-branch",
+    branchName: action.branchName,
+    createdTip: gitBranchTip(root, action.branchName),
+    reversible: true,
+  };
+}
+
 function applyGitHubCreate(transaction, action) {
   const root = transaction.plan.root;
   const currentRemote = run("git", ["-C", root, "remote", "get-url", "origin"], root);
@@ -298,6 +322,50 @@ function applyGitHubCreate(transaction, action) {
   return { kind: "github-create", slug, reversible: false };
 }
 
+function remoteBranchTip(root, branch) {
+  const value = run("git", ["-C", root, "ls-remote", "--heads", "origin", branch], root, { timeout: 30_000 });
+  if (isFailure(value)) return "";
+  return String(value).trim().split(/\s+/)[0] || "";
+}
+
+function applyGitHubPushBranch(transaction, action) {
+  const root = transaction.plan.root;
+  if (remoteBranchTip(root, action.branchName)) throw new Error(`Plan is stale: origin/${action.branchName} already exists.`);
+  const localTip = gitBranchTip(root, action.branchName);
+  if (!localTip) throw new Error(`Local branch ${action.branchName} does not exist.`);
+  if (action.expectedTip && localTip !== action.expectedTip) {
+    throw new Error(`Plan is stale: local branch ${action.branchName} changed before push.`);
+  }
+  const result = run(
+    "git",
+    ["-C", root, "push", "--set-upstream", "origin", `${action.branchName}:${action.branchName}`],
+    root,
+    { timeout: 60_000 },
+  );
+  if (isFailure(result)) throw new Error(`Could not push ${action.branchName}: ${result.message}`);
+  const remoteTip = remoteBranchTip(root, action.branchName);
+  if (remoteTip !== localTip) throw new Error(`Push verification failed for origin/${action.branchName}.`);
+  return { kind: "github-push-branch", branchName: action.branchName, tip: remoteTip, reversible: false };
+}
+
+function applyGitHubDefaultBranch(transaction, action) {
+  const root = transaction.plan.root;
+  const remote = run("git", ["-C", root, "remote", "get-url", "origin"], root);
+  if (isFailure(remote)) throw new Error("Plan is stale: the GitHub origin is no longer available.");
+  const current = inspectGitHubProvider(root, String(remote));
+  if (current.slug !== action.precondition.slug || current.defaultBranch !== action.precondition.defaultBranch) {
+    throw new Error("Plan is stale: GitHub default-branch state changed after inspection.");
+  }
+  if (!current.remoteBranches.includes(action.branchName)) {
+    throw new Error(`GitHub branch ${action.branchName} does not exist; refusing to set it as default.`);
+  }
+  const result = run("gh", ["repo", "edit", current.slug, "--default-branch", action.branchName], root, { timeout: 30_000 });
+  if (isFailure(result)) throw new Error(`Could not set GitHub default branch: ${result.message}`);
+  const verified = inspectGitHubProvider(root, String(remote));
+  if (verified.defaultBranch !== action.branchName) throw new Error("GitHub default-branch verification failed.");
+  return { kind: "github-default-branch", branchName: action.branchName, reversible: false };
+}
+
 function applyGitHubRuleset(transaction, action) {
   const remote = run("git", ["-C", transaction.plan.root, "remote", "get-url", "origin"], transaction.plan.root);
   if (isFailure(remote)) throw new Error("Plan is stale: the GitHub origin is no longer available.");
@@ -305,8 +373,6 @@ function applyGitHubRuleset(transaction, action) {
   const actual = {
     slug: current.slug,
     visibility: current.visibility,
-    defaultBranch: current.defaultBranch,
-    remoteBranches: current.remoteBranches,
     ruleset: current.ruleset,
   };
   if (stableJson(actual) !== stableJson(action.precondition)) {
@@ -336,7 +402,10 @@ function applyAction(transaction, journalFile, action) {
       "merge-json": (value) => applyFileAction(transaction, journalFile, value),
       "git-init": (value) => applyGitInit(transaction, value),
       "git-config": (value) => applyGitConfig(transaction, value),
+      "git-branch": (value) => applyGitBranch(transaction, value),
       "github-create": (value) => applyGitHubCreate(transaction, value),
+      "github-push-branch": (value) => applyGitHubPushBranch(transaction, value),
+      "github-default-branch": (value) => applyGitHubDefaultBranch(transaction, value),
       "github-ruleset": (value) => applyGitHubRuleset(transaction, value),
     },
   });
@@ -381,6 +450,18 @@ function rollbackRecord(root, record) {
       : ["-C", root, "config", "--local", "--unset", record.key];
     const result = run("git", args, root);
     if (isFailure(result) && record.before) throw new Error(`Could not restore Git config ${record.key}: ${result.message}`);
+    return { restored: true };
+  }
+  if (record.kind === "git-branch") {
+    const currentBranch = run("git", ["-C", root, "branch", "--show-current"], root);
+    if (!isFailure(currentBranch) && String(currentBranch).trim() === record.branchName) {
+      throw new Error(`Cannot remove ${record.branchName}: it is currently checked out.`);
+    }
+    const tip = gitBranchTip(root, record.branchName);
+    if (!tip) return { restored: true };
+    if (tip !== record.createdTip) throw new Error(`Cannot remove ${record.branchName}: it changed after Sentinel created it.`);
+    const removed = run("git", ["-C", root, "branch", "-D", record.branchName], root);
+    if (isFailure(removed)) throw new Error(`Could not remove Git branch ${record.branchName}: ${removed.message}`);
     return { restored: true };
   }
   return { restored: false, reason: "external action requires a separately approved compensating plan" };
@@ -454,6 +535,15 @@ function reconcileInFlight(transaction, journalFile, r3Resolutions = new Map()) 
   } else if (action.type === "git-init") {
     const dir = gitDir(root);
     if (dir) rollbackRecord(root, { kind: "git-init", gitDir: dir });
+  } else if (action.type === "git-branch") {
+    const tip = gitBranchTip(root, action.branchName);
+    if (tip && tip !== action.precondition.startPoint) {
+      throw new Error(`Cannot reconcile ${action.id}: branch ${action.branchName} changed after creation.`);
+    }
+    if (tip) {
+      const removed = run("git", ["-C", root, "branch", "-D", action.branchName], root);
+      if (isFailure(removed)) throw new Error(`Could not reconcile Git branch ${action.branchName}.`);
+    }
   } else {
     const resolution = r3Resolutions.get(action.id);
     if (!["retry", "accept"].includes(resolution)) {
@@ -467,6 +557,17 @@ function reconcileInFlight(transaction, journalFile, r3Resolutions = new Map()) 
         const expectedSlug = action.owner ? `${action.owner}/${action.name}` : action.name;
         if (!current.connected || (!current.slug.endsWith(`/${action.name}`) && current.slug !== expectedSlug)) {
           throw new Error(`Cannot accept ${action.id}: the expected GitHub repository was not verified.`);
+        }
+      } else if (action.type === "github-push-branch") {
+        if (remoteBranchTip(root, action.branchName) !== action.expectedTip && action.expectedTip) {
+          throw new Error(`Cannot accept ${action.id}: origin/${action.branchName} does not match the approved tip.`);
+        }
+        if (!remoteBranchTip(root, action.branchName)) {
+          throw new Error(`Cannot accept ${action.id}: origin/${action.branchName} was not verified.`);
+        }
+      } else if (action.type === "github-default-branch") {
+        if (current.defaultBranch !== action.branchName) {
+          throw new Error(`Cannot accept ${action.id}: GitHub default branch is not ${action.branchName}.`);
         }
       } else {
         const available = new Set(current.remoteBranches);

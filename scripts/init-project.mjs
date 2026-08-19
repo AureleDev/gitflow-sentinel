@@ -5,7 +5,7 @@ import { renderPlan } from "./core/planner.mjs";
 try {
   const args = parseProjectArgs(process.argv.slice(2));
   if (args.help) {
-    console.log("Usage: gitflow-sentinel init [path] [--profile standard|custom] [--modules git,agents,...] [--strategy detect|trunk|git-flow] [--agents codex,claude,opencode] [--create-github --visibility private --github-owner owner] [--verified-command <command>] [--remote|--offline] [--json] [--output <file>]");
+    console.log("Usage: gitflow-sentinel init [path] [--profile minimal|standard|hardened|custom] [--modules git,agents,...] [--strategy detect|trunk|git-flow] [--agents codex,claude,opencode] [--create-github --visibility private --github-owner owner] [--verified-command <command>] [--remote|--offline] [--json] [--output <file>]");
   } else {
     const { snapshot, plan } = createPlanFor(args.projectRoot, args.profile, args.modules, args);
     if (args.output) writeJsonOutput(args.output, plan);

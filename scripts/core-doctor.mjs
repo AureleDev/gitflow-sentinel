@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { accessSync, constants, existsSync } from "node:fs";
+import { accessSync, constants, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
-import { isFailure, nextValue, resolveProjectRoot, run } from "./lib.mjs";
-import { loadDesiredState } from "./core/config.mjs";
+import { isFailure, nextValue, resolveProjectRoot, run, SKILL_ROOT } from "./lib.mjs";
+import { loadDesiredState, modulesFor } from "./core/config.mjs";
 import { inspectProject } from "./core/inspect-project.mjs";
 import { listTransactions } from "./core/transaction.mjs";
 
@@ -59,8 +59,10 @@ try {
       );
     }
 
+    let desired = null;
     try {
       const loaded = loadDesiredState(args.projectRoot, snapshot);
+      desired = loaded.config;
       add("configuration", "pass", loaded.source === "file" ? "sentinel.config.json is valid." : `Desired state can be generated from ${loaded.source}.`);
       if (loaded.config.github.manageRuleset && snapshot.provider.github.connected) {
         const permission = snapshot.provider.github.permissions.viewer || "";
@@ -79,6 +81,70 @@ try {
       }
     } catch (error) {
       add("configuration", "error", error.message);
+    }
+
+    if (desired && snapshot.git.isRepo) {
+      const missingBranches = desired.vcs.protectedBranches.filter((branch) => !snapshot.git.branches.includes(branch));
+      add(
+        "protected-branches-local",
+        missingBranches.length ? "error" : "pass",
+        missingBranches.length
+          ? `Missing required local branch(es): ${missingBranches.join(", ")}.`
+          : `Required local branches exist: ${desired.vcs.protectedBranches.join(", ")}.`,
+      );
+
+      if (modulesFor(desired).includes("git-policy")) {
+        const runtimeFiles = [
+          ".gitflow-sentinel/hooks/guard.mjs",
+          ".gitflow-sentinel/hooks/session-start.mjs",
+          ".gitflow-sentinel/hooks/cycle-reminder.mjs",
+          ".gitflow-sentinel/githooks/pre-commit",
+          ".gitflow-sentinel/githooks/commit-msg",
+          ".gitflow-sentinel/githooks/pre-push",
+        ];
+        const missingRuntime = runtimeFiles.filter((file) => !existsSync(path.join(args.projectRoot, file)));
+        add(
+          "git-policy-runtime",
+          missingRuntime.length ? "error" : "pass",
+          missingRuntime.length
+            ? `Managed policy runtime is incomplete (${missingRuntime.length} missing file(s)).`
+            : "Managed policy runtime is present.",
+        );
+        const expectedVersion = JSON.parse(readFileSync(path.join(SKILL_ROOT, "package.json"), "utf8")).version;
+        const runtimeVersionFile = path.join(args.projectRoot, ".gitflow-sentinel/VERSION");
+        const runtimeVersion = existsSync(runtimeVersionFile) ? readFileSync(runtimeVersionFile, "utf8").trim() : "";
+        add(
+          "git-policy-version",
+          runtimeVersion === expectedVersion ? "pass" : "error",
+          runtimeVersion
+            ? `Project runtime ${runtimeVersion}; CLI package ${expectedVersion}.`
+            : `Project runtime version is missing; CLI package ${expectedVersion}.`,
+        );
+        add(
+          "native-git-hooks",
+          snapshot.git.hooksPath === ".gitflow-sentinel/githooks" ? "pass" : "error",
+          snapshot.git.hooksPath === ".gitflow-sentinel/githooks"
+            ? "Native pre-commit, commit-msg, and pre-push hooks are active."
+            : `core.hooksPath is '${snapshot.git.hooksPath || "<unset>"}'; native Sentinel hooks are not active.`,
+        );
+
+        if (desired.agents.enabled.includes("codex")) {
+          const hookFile = path.join(args.projectRoot, ".codex/hooks.json");
+          const wired = existsSync(hookFile) && /gitflow-sentinel[\\/]hooks[\\/]guard\.mjs/.test(readFileSync(hookFile, "utf8"));
+          add(
+            "codex-hooks",
+            wired ? "warning" : "error",
+            wired
+              ? "Codex hooks are configured; review/trust their current hash with /hooks before relying on direct-edit blocking."
+              : "Codex hook wiring is missing.",
+          );
+        }
+        if (desired.agents.enabled.includes("claude")) {
+          const hookFile = path.join(args.projectRoot, ".claude/settings.json");
+          const wired = existsSync(hookFile) && /gitflow-sentinel[\\/]hooks[\\/]guard\.mjs/.test(readFileSync(hookFile, "utf8"));
+          add("claude-hooks", wired ? "pass" : "error", wired ? "Claude Code hook wiring is present." : "Claude Code hook wiring is missing.");
+        }
+      }
     }
 
     if (!snapshot.provider.github.checked) add("github-cli", "pass", "Remote checks were skipped; use --remote to diagnose GitHub.");

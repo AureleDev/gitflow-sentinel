@@ -1,9 +1,9 @@
 const REQUIRED_METHODS = ["detect", "recommend", "plan", "apply", "verify", "rollback", "uninstall"];
 
 const DEFINITIONS = [
-  { id: "git", actionTypes: ["write-file", "merge-managed-block", "merge-json", "git-init", "git-config"] },
+  { id: "git", actionTypes: ["write-file", "merge-managed-block", "merge-json", "git-init", "git-config", "git-branch"] },
   { id: "git-policy", actionTypes: ["write-file", "merge-managed-block", "merge-json", "git-config"] },
-  { id: "github", actionTypes: ["github-create", "github-ruleset"] },
+  { id: "github", actionTypes: ["github-create", "github-push-branch", "github-default-branch", "github-ruleset"] },
   { id: "agents", actionTypes: ["write-file", "merge-managed-block", "merge-json"] },
   { id: "docs", actionTypes: ["write-file", "merge-managed-block"] },
   { id: "quality", actionTypes: ["write-file", "merge-json"] },

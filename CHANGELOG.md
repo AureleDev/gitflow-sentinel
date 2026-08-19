@@ -6,6 +6,43 @@ All notable changes to this project are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.0.3-alpha.3] — 2026-08-19
+
+### Added
+
+- Git Flow is now the standard project model: `main` is stable, `dev` is the
+  protected integration branch, and an explicit trunk choice remains available.
+- Transactional `git-branch` actions create a missing local `dev` branch and
+  restore it only while its tip remains unchanged.
+- GitHub branch push, default-branch selection, and ruleset reconciliation are
+  separate R3 actions with independent verification.
+- Doctor checks the required branches, managed runtime, runtime/CLI version,
+  native hook activation, and agent hook wiring instead of reporting a profile
+  healthy without its expected guardrails.
+
+### Changed
+
+- The `standard` profile includes `git-policy`; `hardened` adds stronger
+  scanning, ownership, provenance, and review controls rather than being the
+  only profile with local workflow feedback.
+- Existing `sentinel.config.json` files now honor explicit CLI profile,
+  strategy, agent, quality, visibility, owner, and reviewer options. Intentional
+  recorded trunk configurations remain unchanged until migration is requested.
+- The Stop hook blocks one incomplete closure attempt and then uses
+  `stop_hook_active` to avoid an unbounded loop.
+- Codex hooks cover all supported tool names and resolve their scripts from the
+  Git root, including Windows-specific commands.
+- The README now leads with one-time installation, natural-language usage,
+  main/dev workflow expectations, hook trust, repair, and honest alpha limits.
+
+### Fixed
+
+- Restored the branch/checkpoint enforcement that regressed when the
+  transactional core made the local policy optional and the Stop hook purely
+  advisory.
+- Verification no longer treats a ruleset as compliant when a required remote
+  branch is missing or GitHub still points to the wrong integration branch.
+
 ## [0.0.3-alpha.2] — 2026-08-15
 
 ### Added

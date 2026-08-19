@@ -24,6 +24,10 @@ commands, constraints and completion criteria without copying the full skill.
 
 Codex uses the portable skill and the bundled plugin manifest. Repository rules
 and hooks are merged structurally when required. Existing entries are preserved.
+Project hooks must be reviewed and trusted at their current hash through
+`/hooks`; Sentinel reports configured-but-unproven activation honestly. Hook
+commands resolve from the Git root, including a Windows-specific command, so a
+session started in a subdirectory still reaches the managed runtime.
 
 When the active Codex interface exposes Plan mode, recommend enabling it before
 starting project configuration. It provides the best interaction for presenting

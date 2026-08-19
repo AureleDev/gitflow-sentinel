@@ -99,7 +99,7 @@ mutation is blocked if an exact backup would persist a high-confidence secret.
 
 - Before the first stable release, versions use
   `0.0.<iteration>-alpha.<revision>`.
-- The current line is `0.0.3-alpha.2`; corrections on the same line increment
+- The current line is `0.0.3-alpha.3`; corrections on the same line increment
   the alpha revision.
 - Stable `1.0.0` is reserved for stable installation, contracts,
   cross-platform validation and upgrades.
@@ -108,7 +108,8 @@ mutation is blocked if an exact backup would persist a high-confidence secret.
 
 ## Normal development after setup
 
-Sentinel does not replace the project's development workflow. Contributors work
-on short branches, run the project's approved checks, open a pull request to
-`main`, and rely on green CI plus verified remote rules. Commit, push, merge,
-branch deletion and publication remain explicit human decisions.
+Contributors start short branches from `dev`, run the approved checks, leave a
+commit checkpoint, and open a pull request to `dev`. Validated release or hotfix
+routes promote work to `main`. Push, merge, branch deletion and publication
+remain explicit actions; the Stop hook continues the agent once when closure is
+missing and then releases a repeated stop to avoid an infinite loop.

@@ -9,7 +9,7 @@ export const CONFIG_FILE = "sentinel.config.json";
 
 export const PROFILE_MODULES = {
   minimal: ["git", "agents", "security"],
-  standard: ["git", "github", "agents", "docs", "quality", "ci", "security", "dependencies", "release"],
+  standard: ["git", "git-policy", "github", "agents", "docs", "quality", "ci", "security", "dependencies", "release"],
   hardened: ["git", "git-policy", "github", "agents", "docs", "quality", "ci", "security", "dependencies", "release"],
   custom: [],
 };
@@ -26,11 +26,11 @@ export const DEFAULT_DESIRED_STATE = {
   },
   vcs: {
     provider: "github",
-    strategy: "trunk",
+    strategy: "git-flow",
     stableBranch: "main",
-    integrationBranch: "main",
+    integrationBranch: "dev",
     legacyBranch: "master",
-    protectedBranches: ["main"],
+    protectedBranches: ["main", "dev"],
   },
   agents: {
     enabled: ["codex"],
@@ -110,6 +110,15 @@ export function validateDesiredState(value) {
   if (new Set(value.vcs?.protectedBranches || []).size !== (value.vcs?.protectedBranches || []).length) {
     add("vcs.protectedBranches", "must contain unique branch names");
   }
+  if (value.vcs?.strategy === "git-flow" && value.vcs?.stableBranch === value.vcs?.integrationBranch) {
+    add("vcs.integrationBranch", "must differ from the stable branch for git-flow");
+  }
+  if (value.vcs?.strategy === "trunk" && value.vcs?.stableBranch !== value.vcs?.integrationBranch) {
+    add("vcs.integrationBranch", "must equal the stable branch for trunk");
+  }
+  for (const branch of [value.vcs?.stableBranch, value.vcs?.integrationBranch].filter(Boolean)) {
+    if (!value.vcs?.protectedBranches?.includes(branch)) add("vcs.protectedBranches", `must include ${branch}`);
+  }
   strings("agents.enabled", value.agents?.enabled);
   if (new Set(value.agents?.enabled || []).size !== (value.agents?.enabled || []).length) add("agents.enabled", "must contain unique agents");
   if (value.agents?.enabled?.some((agent) => !["codex", "claude", "opencode"].includes(agent))) {
@@ -159,10 +168,14 @@ export function desiredFromSnapshot(snapshot, {
     snapshot.agents?.opencode ? "opencode" : "",
   ].filter(Boolean);
   const detectedStrategy = snapshot.git.isRepo && snapshot.git.branches.includes("dev") ? "git-flow" : "trunk";
-  const selectedStrategy = strategy && strategy !== "detect" ? strategy : detectedStrategy;
-  const stableBranch = snapshot.git.defaultBranch || "main";
+  const selectedStrategy = strategy === "detect"
+    ? detectedStrategy
+    : strategy || "git-flow";
+  const stableBranch = snapshot.git.branches.includes("main")
+    ? "main"
+    : snapshot.git.defaultBranch || "main";
   const integrationBranch = selectedStrategy === "git-flow"
-    ? (snapshot.git.branches.includes("dev") ? "dev" : "dev")
+    ? "dev"
     : stableBranch;
   const value = merge(DEFAULT_DESIRED_STATE, {
     profile,
@@ -244,7 +257,35 @@ export function loadDesiredState(root, snapshot, options = {}) {
   } catch (error) {
     throw new Error(`Invalid ${CONFIG_FILE}: ${error.message}. The file was not overwritten.`);
   }
-  return { config: assertDesiredState(merge(DEFAULT_DESIRED_STATE, parsed)), source: "file", legacy: null };
+  const provided = options.provided || {};
+  let config = merge(DEFAULT_DESIRED_STATE, parsed);
+  if (provided.profile) config.profile = options.profile;
+  if (provided.modules && options.profile === "custom") config.modules.enabled = copy(options.modules);
+  if (provided.strategy) {
+    const detected = snapshot.git.branches.includes("dev") ? "git-flow" : "trunk";
+    const strategy = options.strategy === "detect" ? detected : options.strategy;
+    const stableBranch = snapshot.git.branches.includes("main")
+      ? "main"
+      : config.vcs.stableBranch || snapshot.git.defaultBranch || "main";
+    const integrationBranch = strategy === "git-flow" ? "dev" : stableBranch;
+    config.vcs = {
+      ...config.vcs,
+      strategy,
+      stableBranch,
+      integrationBranch,
+      protectedBranches: [...new Set([stableBranch, integrationBranch])],
+    };
+  }
+  if (provided.agents) config.agents.enabled = copy(options.agents);
+  if (provided.verifiedCommands) config.quality.verifiedCommands = copy(options.verifiedCommands);
+  if (provided.createGitHub) config.github.createRepository = Boolean(options.createGitHub);
+  if (provided.visibility) config.project.visibility = options.visibility;
+  if (provided.githubOwner) config.github.owner = options.githubOwner;
+  if (provided.reviewers) config.github.reviewers = options.reviewers;
+  if (config.profile !== "custom") config.modules.enabled = copy(PROFILE_MODULES[config.profile]);
+  config = assertDesiredState(config);
+  const source = serializeDesiredState(config) === readFileSync(file, "utf8") ? "file" : "file-migration";
+  return { config, source, legacy: null };
 }
 
 export function serializeDesiredState(config) {

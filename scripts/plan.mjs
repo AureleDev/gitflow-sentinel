@@ -6,7 +6,7 @@ import { compactPlan } from "./core/public-output.mjs";
 try {
   const args = parseProjectArgs(process.argv.slice(2));
   if (args.help) {
-    console.log("Usage: gitflow-sentinel plan [path] [--profile standard|custom] [--modules git,agents,...] [--strategy detect|trunk|git-flow] [--agents codex,claude,opencode] [--create-github --visibility private --github-owner owner] [--verified-command <command>] [--remote|--offline] [--json [--compact]] [--output <file>]");
+    console.log("Usage: gitflow-sentinel plan [path] [--profile minimal|standard|hardened|custom] [--modules git,agents,...] [--strategy detect|trunk|git-flow] [--agents codex,claude,opencode] [--create-github --visibility private --github-owner owner] [--verified-command <command>] [--remote|--offline] [--json [--compact]] [--output <file>]");
   } else {
     const { plan } = createPlanFor(args.projectRoot, args.profile, args.modules, args);
     if (args.output) {

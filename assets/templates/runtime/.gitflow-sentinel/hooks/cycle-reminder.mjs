@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // managed-by: gitflow-sentinel
-// Stop hook. A final advisory against leaving work in a half-finished Git state:
+// Stop hook. A bounded final guard against leaving work in a half-finished Git state:
 // uncommitted changes on a protected branch, or a "clean" short branch that was
 // never pushed / has no PR / has a merged PR not yet synced locally. When that
-// happens it prints a clear reminder but never traps the host in a stop loop.
+// happens it asks the host to continue once. A repeated Stop event carrying
+// stop_hook_active is allowed so a broken or externally blocked state cannot loop.
+import { readFileSync } from "node:fs";
 import { loadConfig, isShortBranch, isProtected } from "../core/config.mjs";
 import { readState, gh } from "../core/git.mjs";
 
@@ -13,6 +15,13 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 }
 
 const workdir = process.cwd();
+let hookInput = {};
+try {
+  const raw = readFileSync(0, "utf8").trim();
+  hookInput = raw ? JSON.parse(raw) : {};
+} catch {
+  hookInput = {};
+}
 const state = readState(workdir);
 if (!state.isRepo) process.exit(0);
 
@@ -36,6 +45,7 @@ if (changedCount > 0) {
   } else {
     console.error("  - Run checks and create the appropriate commit before ending a validated step.");
     if (changedCount >= 8) console.error("  - The diff is large; consider a WIP checkpoint or a smaller commit boundary.");
+    incompleteClosure = true;
   }
 }
 
@@ -63,6 +73,7 @@ if (isShortBranch(config, branch)) {
       console.error(`gitflow-sentinel: PR #${pr.number} targets ${integration}: ${pr.url}`);
       console.error(`  - Ask for the decision: merge to ${integration} now, or keep the branch open.`);
       console.error(`  - After an approved merge, switch to ${integration} and pull --ff-only before new work.`);
+      incompleteClosure = true;
     } else if (pr.state === "MERGED") {
       console.error(`gitflow-sentinel: PR #${pr.number} is merged. Finish local sync before new work:`);
       console.error(`  - git fetch --prune && git switch ${integration} && git pull --ff-only`);
@@ -75,6 +86,11 @@ if (isShortBranch(config, branch)) {
 }
 
 if (incompleteClosure) {
-  console.error("gitflow-sentinel: incomplete Git closure reported above; the stop hook is advisory and will not trap the session.");
+  if (hookInput.stop_hook_active === true) {
+    console.error("gitflow-sentinel: Git closure is still incomplete, but the bounded stop guard already continued this turn once; allowing termination to avoid a loop.");
+    process.exit(0);
+  }
+  console.error("gitflow-sentinel: stop blocked once. Finish the Git checkpoint/PR decision above, or report the concrete external blocker; a repeated Stop event will be allowed safely.");
+  process.exit(2);
 }
 process.exit(0);

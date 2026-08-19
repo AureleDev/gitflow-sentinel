@@ -24,29 +24,43 @@ export function parseProjectArgs(argv, { profile = true, output = true, json = t
     planOnly: false,
     verbose: false,
     compact: false,
+    provided: {
+      profile: false,
+      modules: false,
+      agents: false,
+      verifiedCommands: false,
+      createGitHub: false,
+      visibility: false,
+      githubOwner: false,
+      strategy: false,
+      reviewers: false,
+    },
   };
   let positional = false;
   for (let i = 0; i < argv.length; i += 1) {
     const value = argv[i];
     if (value === "--project-root") { args.projectRoot = nextValue(argv, i, value); i += 1; }
-    else if (profile && value === "--profile") { args.profile = nextValue(argv, i, value); i += 1; }
+    else if (profile && value === "--profile") { args.profile = nextValue(argv, i, value); args.provided.profile = true; i += 1; }
     else if (profile && value === "--modules") {
       args.modules = nextValue(argv, i, value).split(",").map((item) => item.trim()).filter(Boolean);
+      args.provided.modules = true;
       i += 1;
     }
     else if (profile && value === "--agents") {
       args.agents = nextValue(argv, i, value).split(",").map((item) => item.trim()).filter(Boolean);
+      args.provided.agents = true;
       i += 1;
     }
     else if (profile && value === "--verified-command") {
       args.verifiedCommands.push(nextValue(argv, i, value));
+      args.provided.verifiedCommands = true;
       i += 1;
     }
-    else if (profile && value === "--create-github") args.createGitHub = true;
-    else if (profile && value === "--visibility") { args.visibility = nextValue(argv, i, value); i += 1; }
-    else if (profile && value === "--github-owner") { args.githubOwner = nextValue(argv, i, value); i += 1; }
-    else if (profile && value === "--strategy") { args.strategy = nextValue(argv, i, value); i += 1; }
-    else if (profile && value === "--reviewers") { args.reviewers = Number(nextValue(argv, i, value)); i += 1; }
+    else if (profile && value === "--create-github") { args.createGitHub = true; args.provided.createGitHub = true; }
+    else if (profile && value === "--visibility") { args.visibility = nextValue(argv, i, value); args.provided.visibility = true; i += 1; }
+    else if (profile && value === "--github-owner") { args.githubOwner = nextValue(argv, i, value); args.provided.githubOwner = true; i += 1; }
+    else if (profile && value === "--strategy") { args.strategy = nextValue(argv, i, value); args.provided.strategy = true; i += 1; }
+    else if (profile && value === "--reviewers") { args.reviewers = Number(nextValue(argv, i, value)); args.provided.reviewers = true; i += 1; }
     else if (output && value === "--output") { args.output = nextValue(argv, i, value); i += 1; }
     else if (value === "--remote") args.remote = true;
     else if (value === "--offline") args.offline = true;

@@ -9,7 +9,18 @@ export const SNAPSHOT_KIND = "gitflow-sentinel/project-snapshot";
 export const CONFIG_KIND = "gitflow-sentinel/desired-state";
 export const TRANSACTION_KIND = "gitflow-sentinel/transaction";
 export const RISKS = new Set(["R0", "R1", "R2", "R3"]);
-const ACTION_TYPES = new Set(["write-file", "merge-managed-block", "merge-json", "git-init", "git-config", "github-create", "github-ruleset"]);
+const ACTION_TYPES = new Set([
+  "write-file",
+  "merge-managed-block",
+  "merge-json",
+  "git-init",
+  "git-config",
+  "git-branch",
+  "github-create",
+  "github-push-branch",
+  "github-default-branch",
+  "github-ruleset",
+]);
 const HASH_IGNORED_DIRECTORIES = new Set([
   ".git",
   ".next",

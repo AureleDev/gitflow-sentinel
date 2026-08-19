@@ -10,7 +10,7 @@ body:
     id: version
     attributes:
       label: Version de Sentinel
-      placeholder: 0.0.3-alpha.2
+      placeholder: 0.0.3-alpha.3
     validations:
       required: true
   - type: input

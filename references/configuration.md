@@ -22,11 +22,11 @@ reports the errors and preserves the original bytes.
   },
   "vcs": {
     "provider": "github",
-    "strategy": "trunk",
+    "strategy": "git-flow",
     "stableBranch": "main",
-    "integrationBranch": "main",
+    "integrationBranch": "dev",
     "legacyBranch": "master",
-    "protectedBranches": ["main"]
+    "protectedBranches": ["main", "dev"]
   },
   "agents": {
     "enabled": ["codex", "claude", "opencode"]
@@ -42,7 +42,7 @@ reports the errors and preserves the original bytes.
   },
   "modules": {
     "enabled": [
-      "git", "github", "agents", "docs", "quality",
+      "git", "git-policy", "github", "agents", "docs", "quality",
       "ci", "security", "dependencies", "release"
     ]
   }
@@ -52,9 +52,9 @@ reports the errors and preserves the original bytes.
 ## Profiles
 
 - `minimal`: Git, agent instructions and essential security.
-- `standard`: the default foundation set.
-- `hardened`: stronger remote review, code-scanning controls, and the optional
-  historical local Git-policy runtime.
+- `standard`: the default foundation set, including local Git-policy feedback.
+- `hardened`: stronger remote review, code-scanning, ownership and provenance
+  controls.
 - `custom`: only explicitly enabled modules.
 
 V1 custom profiles must include `git`, because approved transaction journals
@@ -68,10 +68,8 @@ Before a command can be copied into generated CI, run the two-step
 `gitflow-sentinel check` preview and approval flow. Evidence becomes invalid as
 soon as the commit, branch or worktree changes.
 
-Interactive `setup` asks whether to add the optional `git-policy` module when a
-new standard configuration is created. The question states that these local
-hooks are bypassable early feedback; selecting them records an explicit custom
-module set rather than changing the meaning of `standard` silently.
+The standard profile includes `git-policy`. Its local hooks remain bypassable
+early feedback; CI and verified remote rules carry shared enforcement.
 
 ## Project decisions
 
@@ -81,8 +79,10 @@ R3 and requires a separate approval. In the current alpha, changing the
 visibility of an already connected repository is not planned or applied by the
 GitHub adapter; perform and verify that external action separately.
 
-`git.strategy` may be `trunk`, `git-flow` or `detect`. Ambiguity produces a
-recommendation; it never silently forces a branch model.
+`git.strategy` may be `trunk`, `git-flow` or `detect` on the CLI. New
+configurations default to Git Flow (`main` stable, `dev` integration). Interactive
+setup offers trunk as an explicit refusal of that default. Existing recorded
+trunk configurations are preserved until `--strategy git-flow` is requested.
 
 ## Ownership
 
@@ -94,13 +94,11 @@ Sentinel blocks the mutation instead of persisting that value in a backup.
 
 ## Legacy Git policy
 
-`.gitflow-sentinel.json` remains the compatibility configuration for the
-historical `git-policy` module. It is enabled by `hardened` or explicitly by a
-custom profile, not by `standard`. When a valid legacy installation is found
-under `standard`, Sentinel reports the available migration without reinstalling
-the runtime. When the module is selected, Sentinel proposes a migration and
-preserves project-specific fields. When the legacy file is invalid, planning
-stops with a repair recommendation instead of falling back silently.
+`.gitflow-sentinel.json` remains the compatibility configuration for the local
+`git-policy` runtime. It is maintained by `standard`, `hardened`, or an explicit
+custom profile containing `git-policy`. Sentinel preserves project-specific
+fields during migration. When the legacy file is invalid, planning stops with a
+repair recommendation instead of falling back silently.
 
 Its branch-policy field reference remains in
 [`policy.md`](policy.md). New project-level decisions belong in

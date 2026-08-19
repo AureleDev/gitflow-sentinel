@@ -103,4 +103,6 @@ contract holds after any change to the engine or config:
 - direct edits outside the current worktree → allow; missing/inside targets on a protected branch → block;
 - `/dev/null`, `nul` and `$null` redirections → allow, while real file redirections → block on protected branches;
 - pushing a short branch to its own remote branch → allow so an open PR can be completed;
-- the Stop hook reports incomplete closure but never traps the agent in an unbounded loop.
+- the Stop hook blocks one incomplete closure attempt, then accepts a repeated
+  `stop_hook_active` event so the agent can report an external blocker without
+  entering an unbounded loop.

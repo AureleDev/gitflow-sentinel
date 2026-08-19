@@ -21,6 +21,7 @@ export function run(command, args, cwd, options = {}) {
     return execFileSync(command, args, {
       cwd,
       encoding: "utf8",
+      env: options.env ? { ...process.env, ...options.env } : undefined,
       stdio: options.input ? ["pipe", "pipe", "pipe"] : ["ignore", "pipe", "pipe"],
       input: options.input,
       timeout: options.timeout,

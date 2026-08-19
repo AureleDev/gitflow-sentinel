@@ -1061,6 +1061,57 @@ test("R3 actions require their own approval and roll back prior local work", (t)
   assert.equal(existsSync(target), false);
 });
 
+test("approved remote branch creation crosses the native hook with a scoped override", (t) => {
+  const root = tempProject("sentinel-approved-push-");
+  const remote = tempProject("sentinel-approved-push-remote-");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  t.after(() => rmSync(remote, { recursive: true, force: true }));
+
+  git(root, "init", "-b", "main");
+  git(root, "config", "user.email", "sentinel@example.invalid");
+  git(root, "config", "user.name", "Sentinel Test");
+  writeFileSync(path.join(root, "seed.txt"), "seed\n");
+  git(root, "add", "seed.txt");
+  git(root, "commit", "-m", "test: seed project");
+  git(root, "branch", "dev");
+  git(remote, "init", "--bare");
+  git(root, "remote", "add", "origin", remote);
+
+  const hooks = path.join(root, ".test-hooks");
+  mkdirSync(hooks, { recursive: true });
+  writeFileSync(
+    path.join(hooks, "pre-push"),
+    "#!/bin/sh\n[ \"$GITFLOW_OVERRIDE\" = \"explicit\" ] || exit 1\n",
+    { mode: 0o755 },
+  );
+  git(root, "config", "core.hooksPath", ".test-hooks");
+  assert.throws(() => git(root, "push", "origin", "dev:dev"));
+
+  const tip = git(root, "rev-parse", "dev");
+  const actionId = "001-github-github-push-branch";
+  const plan = finalizePlan({
+    id: "plan-approved-push-test",
+    root,
+    desiredState: {},
+    snapshot: {},
+    recommendations: [],
+    actions: [{
+      id: actionId,
+      module: "github",
+      type: "github-push-branch",
+      risk: "R3",
+      branchName: "dev",
+      expectedTip: tip,
+      description: "Create the approved integration branch.",
+    }],
+  });
+
+  const transaction = applyPlan(plan, approvals(plan, { r3Approvals: [actionId] }));
+  assert.equal(transaction.status, "completed");
+  assert.equal(git(remote, "rev-parse", "refs/heads/dev"), tip);
+  assert.equal(git(root, "rev-parse", "--abbrev-ref", "dev@{upstream}"), "origin/dev");
+});
+
 test("transaction paths cannot escape the project root", (t) => {
   const root = tempProject();
   t.after(() => rmSync(root, { recursive: true, force: true }));

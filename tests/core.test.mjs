@@ -655,7 +655,7 @@ test("runtime hooks cover agent tools, allow short-branch push, and bound Stop c
 
   const root = tempProject("sentinel-hook-cycle-");
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  git(root, "init", "-b", "feat/review-fix");
+  git(root, "init", "-b", "codex/review-fix");
   git(root, "config", "user.email", "sentinel@example.invalid");
   git(root, "config", "user.name", "Sentinel Test");
   writeFileSync(path.join(root, "tracked.txt"), "fixture\n");
@@ -667,7 +667,7 @@ test("runtime hooks cover agent tools, allow short-branch push, and bound Stop c
   const push = spawnSync(process.execPath, [nativeHook, "pre-push"], {
     cwd: root,
     encoding: "utf8",
-    input: `refs/heads/feat/review-fix ${sha} refs/heads/feat/review-fix ${"0".repeat(40)}\n`,
+    input: `refs/heads/codex/review-fix ${sha} refs/heads/codex/review-fix ${"0".repeat(40)}\n`,
   });
   assert.equal(push.status, 0, push.stderr);
 
@@ -722,6 +722,12 @@ test("Git Flow is the default, explicit trunk is preserved, and existing config 
   assert.equal(initial.plan.desiredState.vcs.integrationBranch, "dev");
   assert.deepEqual(initial.plan.desiredState.vcs.protectedBranches, ["main", "dev"]);
   assert.equal(initial.plan.actions.some((action) => action.type === "git-branch" && action.branchName === "dev"), true);
+
+  const policyAction = initial.plan.actions.find((action) => action.target === ".gitflow-sentinel.json");
+  assert.ok(policyAction);
+  assert.equal(policyAction.patch.shortBranchPrefixes.includes("codex"), true);
+  assert.equal(policyAction.patch.prRoutes.dev.includes("codex/*"), true);
+  assert.equal(policyAction.patch.commitTypes.includes("codex"), false);
 
   const trunkConfig = structuredClone(initial.loaded.config);
   trunkConfig.vcs.strategy = "trunk";

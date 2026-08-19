@@ -276,16 +276,23 @@ function guardrailContext(root, config) {
     stableBranch: config.vcs.stableBranch,
     integrationBranch: config.vcs.integrationBranch,
     legacyBranch: config.vcs.legacyBranch,
-    shortPrefixes: "feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert",
+    shortPrefixes: "feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert, codex, claude, opencode",
   };
 }
 
 function guardrailPatch(root, config) {
   const file = path.join(root, ".gitflow-sentinel.json");
   const existing = parseJsonFile(file, ".gitflow-sentinel.json");
-  const prefixes = Array.isArray(existing.shortBranchPrefixes)
+  const conventionalPrefixes = ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"];
+  const configuredPrefixes = Array.isArray(existing.shortBranchPrefixes)
     ? existing.shortBranchPrefixes
-    : ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"];
+    : conventionalPrefixes;
+  const agentPrefixes = (config.agents?.enabled || [])
+    .filter((agent) => ["codex", "claude", "opencode"].includes(agent));
+  const prefixes = [...new Set([...configuredPrefixes, ...agentPrefixes])];
+  const commitTypes = Object.prototype.hasOwnProperty.call(existing, "commitTypes")
+    ? existing.commitTypes
+    : conventionalPrefixes;
   const shortRoutes = prefixes.map((prefix) => `${prefix}/*`);
   return {
     version: 1,
@@ -294,6 +301,7 @@ function guardrailPatch(root, config) {
     protectedBranches: config.vcs.protectedBranches,
     legacyBranch: config.vcs.legacyBranch,
     shortBranchPrefixes: prefixes,
+    commitTypes,
     prRoutes: {
       ...(existing.prRoutes || {}),
       [config.vcs.integrationBranch]: shortRoutes,

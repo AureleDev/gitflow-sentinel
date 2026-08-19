@@ -46,6 +46,7 @@ import { collectSetupApprovals, withLocalGitPolicy } from "../scripts/core/setup
 import { renderSetupCompletion, renderSetupSummary } from "../scripts/core/human-output.mjs";
 import { compactPendingActions, compactPlan, compactSnapshot } from "../scripts/core/public-output.mjs";
 import { mergeManagedBlock } from "../scripts/core/managed-block.mjs";
+import { mergeJsonValue } from "../scripts/core/json-merge.mjs";
 import {
   analyze,
   isDirectEditTool,
@@ -57,7 +58,7 @@ import {
 } from "../assets/templates/runtime/.gitflow-sentinel/core/event.mjs";
 import { DEFAULTS, validateConfig } from "../assets/templates/runtime/.gitflow-sentinel/core/config.mjs";
 import { evaluate, partition } from "../assets/templates/runtime/.gitflow-sentinel/core/policy.mjs";
-import { run } from "../scripts/lib.mjs";
+import { ACTIVATE_PREPARE_COMMAND, LEGACY_ACTIVATE_PREPARE_COMMAND, run } from "../scripts/lib.mjs";
 
 function tempProject(prefix = "sentinel-test-") {
   return mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -181,6 +182,33 @@ test("standard setup includes local Git policy without becoming a custom profile
     assert.equal(plan.desiredState.profile, "standard");
     assert.equal(plan.desiredState.modules.enabled.includes("git-policy"), true);
     assert.equal(plan.actions.some((action) => action.module === "git-policy"), true);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("package prepare migration is safe when the project runtime is absent", () => {
+  const migrated = mergeJsonValue(
+    { scripts: { prepare: `npm run existing && ${LEGACY_ACTIVATE_PREPARE_COMMAND}` } },
+    {
+      strategy: "package-prepare",
+      addition: ACTIVATE_PREPARE_COMMAND,
+      legacyAddition: LEGACY_ACTIVATE_PREPARE_COMMAND,
+    },
+  );
+  assert.equal(migrated.scripts.prepare.includes(LEGACY_ACTIVATE_PREPARE_COMMAND), false);
+  assert.equal(migrated.scripts.prepare, `npm run existing && ${ACTIVATE_PREPARE_COMMAND}`);
+
+  const root = tempProject("sentinel-safe-prepare-");
+  try {
+    writeFileSync(path.join(root, "package.json"), `${JSON.stringify({
+      scripts: { prepare: ACTIVATE_PREPARE_COMMAND },
+    }, null, 2)}\n`);
+    execFileSync(
+      process.execPath,
+      ["-e", "const p=require('./package.json');require('node:child_process').execSync(p.scripts.prepare,{stdio:'pipe'})"],
+      { cwd: root, stdio: ["ignore", "pipe", "pipe"] },
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

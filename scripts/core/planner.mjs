@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
+  ACTIVATE_PREPARE_COMMAND,
+  LEGACY_ACTIVATE_PREPARE_COMMAND,
   SKILL_ROOT,
   TEMPLATE_ROOT,
   listFiles,
@@ -380,11 +382,12 @@ function addGuardrailRuntime(root, actions, recommendations, snapshot, config) {
   if (existsSync(packageFile)) {
     const packageJson = parseJsonFile(packageFile, "package.json");
     const prepare = packageJson.scripts?.prepare || "";
-    const activation = "node .gitflow-sentinel/activate.mjs";
-    if (!prepare.includes(activation)) {
+    const activation = ACTIVATE_PREPARE_COMMAND;
+    if (!prepare.includes(activation) || prepare.includes(LEGACY_ACTIVATE_PREPARE_COMMAND)) {
       jsonMergeAction(root, actions, "git", "package.json", null, {
         strategy: "package-prepare",
         addition: activation,
+        legacyAddition: LEGACY_ACTIVATE_PREPARE_COMMAND,
         risk: "R2",
         description: "Re-arm native Git hooks after a fresh dependency installation.",
       });
